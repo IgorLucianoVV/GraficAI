@@ -177,7 +177,7 @@ export function App() {
     { id: 'undo', label: 'Desfazer', shortcut: 'Ctrl Z', run: () => dispatch({ type: 'undo' }), enabled: state.past.length > 0 },
     { id: 'redo', label: 'Refazer', shortcut: 'Ctrl Shift Z', run: () => dispatch({ type: 'redo' }), enabled: state.future.length > 0 },
     { id: 'foco', label: 'Modo foco (esconder painéis)', shortcut: 'Ctrl \\', run: () => dispatch({ type: 'focus' }), enabled: !!state.book },
-    { id: 'exportar', label: 'Exportar para a gráfica ou designer (PDF)…', run: () => setExporting(true), enabled: !!state.book },
+    { id: 'exportar', label: 'Exportar: livro composto, gráfica ou designer (PDF)…', run: () => setExporting(true), enabled: !!state.book },
     { id: 'export', label: 'Exportar diagnóstico (JSON)', run: exportReport, enabled: !!state.book },
     { id: 'print', label: 'Imprimir relatório', run: () => window.print(), enabled: !!state.book },
     { id: 'tema', label: theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro', run: () => setTheme((t) => (t === 'dark' ? 'light' : 'dark')) },

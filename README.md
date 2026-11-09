@@ -23,6 +23,18 @@ Esta é a **fase F1 (Diagnóstico)** do plano de implementação.
 
 > Os valores de custo dos perfis de gráfica são **de exemplo**. Substitua em `packages/core/src/defaults.ts` pela tabela da gráfica parceira.
 
+## Livro composto (Typst)
+
+Exportar → **Livro composto** gera o miolo diagramado de verdade com [Typst](https://typst.app) (via `@myriaddreamin/typst-ts-node-compiler`, sem instalar nada além do `npm install`):
+
+- formato, margens interna/externa, corpo e entrelinha do projeto; hifenização em português;
+- abertura de capítulo: numeral, ornamento, capitular rebaixada (medida palavra a palavra) ou elevada, versalete nas primeiras palavras ou na primeira linha;
+- notas de rodapé na chamada, numeradas por capítulo; sumário com as páginas reais;
+- cabeço (título do livro no verso, do capítulo na frente), fólio, aberturas em página ímpar e brancos sem cabeço/fólio;
+- saída no formato final, com sangria ou com sangria e marcas de corte; opção de fechar o último caderno com páginas em branco.
+
+`POST /api/typeset` com `{ book, settings, options: { trimMarks, padToSignatures }, format: 'pdf' | 'typ' | 'json' }`. O `.typ` é legível e editável: as funções de desenho ficam no prelúdio. Fonte padrão: EB Garamond (OFL, em `packages/api/fonts`).
+
 ## Rodando
 
 Requer Node 20+.

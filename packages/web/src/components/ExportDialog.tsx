@@ -13,11 +13,13 @@ interface Props {
   onDone: (msg: string) => void;
 }
 
-/** Exportação: especificação para a gráfica e brief para o designer, em PDF. */
+/** Exportação: especificação para a gráfica, brief para o designer e o livro composto. */
 export function ExportDialog({ book, diag, settings, onSaveProduction, onExportJson, onClose, onDone }: Props) {
   const [prod, setProd] = useState<ProductionSpec>(settings.production);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [marks, setMarks] = useState<'nenhuma' | 'sangria' | 'marcas'>('nenhuma');
+  const [pad, setPad] = useState(true);
   const first = useRef<HTMLButtonElement>(null);
   const opener = useRef<Element | null>(document.activeElement);
 
@@ -41,6 +43,40 @@ export function ExportDialog({ book, diag, settings, onSaveProduction, onExportJ
       onDone(`${doc.title} exportada (${doc.filename}).`);
     } catch (e) {
       setError(`Não foi possível gerar o PDF: ${(e as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const slug = book.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'livro';
+
+  /** Composição real no servidor (Typst). */
+  const runTypeset = async (format: 'pdf' | 'typ') => {
+    setBusy(`miolo-${format}`);
+    setError(null);
+    try {
+      if (changed) onSaveProduction(prod);
+      const res = await fetch('/api/typeset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ book, settings: { ...settings, production: prod }, options: { trimMarks: marks, padToSignatures: pad }, format }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error([j.error, ...(j.diagnostics ?? [])].filter(Boolean).join(' ') || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const name = format === 'pdf' ? `${slug}-miolo${marks === 'marcas' ? '-marcas' : marks === 'sangria' ? '-sangria' : ''}.pdf` : `${slug}-miolo.typ`;
+      saveBlob(name, blob);
+      const pages = res.headers.get('X-GraficAI-Pages');
+      const padding = Number(res.headers.get('X-GraficAI-Padding') ?? 0);
+      onDone(
+        format === 'pdf'
+          ? `Miolo composto: ${pages} páginas reais${padding ? ` (${padding} em branco para fechar o caderno)` : ''}. Estimativa era ${diag.plan.totalPages}.`
+          : `Fonte Typst exportado (${name}).`,
+      );
+    } catch (e) {
+      setError(`Não foi possível compor o livro: ${(e as Error).message}`);
     } finally {
       setBusy(null);
     }
@@ -72,6 +108,36 @@ export function ExportDialog({ book, diag, settings, onSaveProduction, onExportJ
             </button>
           </section>
         </div>
+
+        <section className="export-card export-wide">
+          <h3>Livro composto</h3>
+          <p className="small muted">
+            O miolo diagramado de verdade, com o projeto gráfico atual: formato, margens, corpo e entrelinha, abertura de capítulo com capitular, notas de rodapé,
+            sumário com páginas reais, cabeço e fólio. Pronto para revisão ou para a gráfica.
+          </p>
+          <div className="row" style={{ alignItems: 'flex-end' }}>
+            <div className="field">
+              <label htmlFor="ts-marks">Saída</label>
+              <select id="ts-marks" value={marks} onChange={(e) => setMarks(e.target.value as typeof marks)}>
+                <option value="nenhuma">Formato final (leitura e revisão)</option>
+                <option value="sangria">Com sangria</option>
+                <option value="marcas">Com sangria e marcas de corte (gráfica)</option>
+              </select>
+            </div>
+            <label className="check small" style={{ flex: 'none' }}>
+              <input type="checkbox" checked={pad} onChange={(e) => setPad(e.target.checked)} />
+              Fechar o último caderno
+            </label>
+          </div>
+          <div className="row">
+            <button className="btn btn-primary" disabled={!!busy} onClick={() => runTypeset('pdf')}>
+              {busy === 'miolo-pdf' ? 'Compondo…' : 'Baixar miolo (PDF)'}
+            </button>
+            <button className="btn" disabled={!!busy} onClick={() => runTypeset('typ')} style={{ flex: 'none' }}>
+              {busy === 'miolo-typ' ? 'Gerando…' : 'Fonte Typst (.typ)'}
+            </button>
+          </div>
+        </section>
 
         <details className="export-prod" open={changed || undefined}>
           <summary>Dados de produção (entram na especificação)</summary>
