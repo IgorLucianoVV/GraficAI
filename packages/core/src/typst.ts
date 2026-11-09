@@ -1,6 +1,6 @@
 import type { Block, Book, BookElement, ProjectSettings, Run } from './types.ts';
 import { ruleFor } from './rules.ts';
-import { analyzeOpening, chapterNumeral } from './opening.ts';
+import { analyzeOpening, chapterEpigraphIndex, chapterNumeral } from './opening.ts';
 import { pageMetrics } from './layout.ts';
 import { blockRuns } from './inline.ts';
 
@@ -204,6 +204,9 @@ const PRELUDE = String.raw`
   v(1.6em)
 }
 
+// Epígrafe de capítulo: à direita, itálico, corpo menor.
+#let gx-epigraph(body) = align(right, block(width: 62%, below: 2em, { set text(size: 0.9em, style: "italic"); set par(justify: false, first-line-indent: 0pt); align(right, body) }))
+
 #let gx-quote(body) = pad(left: 1.6em, right: 1.6em, { set text(size: 0.92em); set par(first-line-indent: 0pt); body })
 
 #let gx-placeholder(label, h) = block(width: 100%, height: h, stroke: 0.5pt + luma(160), inset: 6pt, align(center + horizon, text(fill: luma(120), size: 0.85em, label)))
@@ -340,7 +343,8 @@ function renderElement(el: BookElement, book: Book, settings: ProjectSettings, c
 
   const opening = applies ? analyzeOpening(el, pageMetrics(d), d) : null;
   // A capitular é um bloco; o parágrafo seguinte precisa do recuo explícito.
-  const indentNext = opening && opening.blockIndex >= 0 ? opening.blockIndex + 1 : -1;
+  const indentNext = opening && opening.blockIndex >= 0 && el.blocks[opening.blockIndex].type === 'paragrafo' ? opening.blockIndex + 1 : -1;
+  const epigraph = el.kind === 'capitulo' || applies ? chapterEpigraphIndex(el) : -1;
   let i = 0;
   while (i < el.blocks.length) {
     const b = el.blocks[i];
@@ -354,7 +358,9 @@ function renderElement(el: BookElement, book: Book, settings: ProjectSettings, c
       out.push(el.kind === 'referencias' ? items.map((it) => `#par(hanging-indent: 1.5em, first-line-indent: 0pt)${it}`).join('\n\n') : `#list(tight: true, ${items.join(', ')})`);
       continue;
     }
-    if (opening && i === opening.blockIndex) out.push(openingParagraph(b, opening, op, notes, used));
+    if (i === epigraph) out.push(`#gx-epigraph[${runsMarkup(blockRuns(b), notes, used)}]`);
+    else if (opening && i === opening.blockIndex)
+      out.push(b.type === 'citacao' ? `#gx-quote[${openingParagraph(b, opening, op, notes, used)}]` : openingParagraph(b, opening, op, notes, used));
     else if (i === indentNext && b.type === 'paragrafo' && el.kind !== 'referencias')
       out.push(`#par(first-line-indent: (amount: 1.2em, all: true))[${runsMarkup(blockRuns(b), notes, used)}]`);
     else out.push(blockMarkup(b, el, notes, used));

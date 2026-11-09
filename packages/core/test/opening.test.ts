@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   analyzeOpening,
   chapterNumeral,
+  chapterEpigraphIndex,
   defaultSettings,
   diagnose,
   explainPage,
@@ -104,6 +105,20 @@ describe('abertura de capítulo', () => {
     expect(classic.layout.elements.filter((e) => e.kind === 'capitulo').every((e) => e.opening)).toBe(true);
     const first = classic.layout.elements.find((e) => e.kind === 'capitulo')!;
     expect(explainPage(book, classic, first.startPage).lines.some((l) => l.startsWith('Abertura: capitular'))).toBe(true);
+  });
+
+  it('abertura vai no primeiro bloco de texto; epígrafe curta é pulada', () => {
+    const d = design('classica');
+    const m = pageMetrics(d);
+    const withQuote = (q: string): BookElement => ({ ...chapter(LONG), blocks: [{ type: 'citacao', text: q }, { type: 'paragrafo', text: LONG }] });
+    // Citação longa abre o capítulo: a capitular vai nela.
+    const long = analyzeOpening(withQuote('Começa uma citação longa. '.repeat(20)), m, d)!;
+    expect(long.blockIndex).toBe(0);
+    expect(long.cap).toBe('C');
+    // Citação curta é epígrafe: a capitular vai no parágrafo seguinte.
+    const short = withQuote('Todo rio guarda a memória do caminho.');
+    expect(chapterEpigraphIndex(short)).toBe(0);
+    expect(analyzeOpening(short, m, d)!.blockIndex).toBe(1);
   });
 
   it('numerais', () => {

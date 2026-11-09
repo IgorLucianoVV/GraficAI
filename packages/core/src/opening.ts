@@ -75,6 +75,25 @@ export function dropCapSizePt(d: DesignSpec, lines: number): number {
   return ((lines - 1) * d.leadingPt + CAP_HEIGHT_EM * d.bodySizePt) / CAP_HEIGHT_EM;
 }
 
+/** Citação curta no início do capítulo é epígrafe; acima disso é texto e recebe a abertura. */
+export const EPIGRAPH_MAX_CHARS = 300;
+
+/** Índice do bloco de epígrafe do capítulo (citação curta antes do texto), ou -1. */
+export function chapterEpigraphIndex(el: BookElement): number {
+  const i = el.blocks.findIndex((b) => b.type !== 'nota');
+  const b = el.blocks[i];
+  return b && b.type === 'citacao' && b.text.trim().length <= EPIGRAPH_MAX_CHARS && el.blocks.some((x, j) => j > i && x.type === 'paragrafo') ? i : -1;
+}
+
+/**
+ * Bloco que abre o capítulo: o primeiro bloco de texto (parágrafo ou citação
+ * longa), pulando uma epígrafe curta.
+ */
+export function openingBlockIndex(el: BookElement): number {
+  const epi = chapterEpigraphIndex(el);
+  return el.blocks.findIndex((b, j) => j !== epi && (b.type === 'paragrafo' || b.type === 'citacao'));
+}
+
 const HANGING = /^[—–\-"“”«'‘’(]+\s*/;
 
 /** Separa pontuação pendurada, capitular e versalete do início de um parágrafo. */
@@ -124,7 +143,7 @@ export function analyzeOpening(el: BookElement, m: PageMetrics, d: DesignSpec): 
   if (!o || !o.appliesTo.includes(el.kind)) return null;
 
   const ornament = ORNAMENT_LINES[o.ornament];
-  const blockIndex = el.blocks.findIndex((b) => b.type === 'paragrafo');
+  const blockIndex = openingBlockIndex(el);
   if (blockIndex < 0) {
     return { cap: null, hanging: '', leadIn: '', extraLines: ornament, blockIndex: -1, skipped: o.dropCap.mode !== 'nenhuma' ? 'sem_paragrafo' : undefined, shortParagraph: false };
   }
