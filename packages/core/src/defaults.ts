@@ -1,3 +1,4 @@
+import { openingPreset } from './opening.ts';
 import type { DesignSpec, LaudaConfig, PaperProfile, PrinterProfile, ProjectSettings } from './types.ts';
 
 export const PAPERS: PaperProfile[] = [
@@ -26,6 +27,7 @@ export const DEFAULT_DESIGN: DesignSpec = {
   avgCharWidthEm: 0.45,
   chapterSink: 0.33,
   chaptersOnOdd: true,
+  chapterOpening: openingPreset('classica'),
 };
 
 export const DEFAULT_LAUDA: LaudaConfig = { charsPerLauda: 2100, includeNotes: true, rounding: 'nenhum' };
@@ -89,5 +91,5 @@ export const PRINTERS: PrinterProfile[] = [
 ];
 
 export function defaultSettings(): ProjectSettings {
-  return { design: { ...DEFAULT_DESIGN }, lauda: { ...DEFAULT_LAUDA }, printer: JSON.parse(JSON.stringify(PRINTERS[0])) as PrinterProfile, run: 1000 };
+  return { design: JSON.parse(JSON.stringify(DEFAULT_DESIGN)) as DesignSpec, lauda: { ...DEFAULT_LAUDA }, printer: JSON.parse(JSON.stringify(PRINTERS[0])) as PrinterProfile, run: 1000 };
 }

@@ -2,6 +2,7 @@ import type { Book, Diagnosis, Issue, ProjectSettings, Variant, DesignSpec } fro
 import { PRINTERS, PAPERS, TRIMS, describePlan, explainPage, KIND_LABELS } from '@graficai/core';
 import type { RightTab } from '../state.ts';
 import { brl, dec, num } from '../format.ts';
+import { OpeningSettings } from './OpeningSettings.tsx';
 
 interface Props {
   tab: RightTab;
@@ -219,7 +220,7 @@ function Slider({
   );
 }
 
-function Adjustments({ settings, onLive, onEndLive, onCommit, diag }: Props) {
+function Adjustments({ book, settings, onLive, onEndLive, onCommit, diag }: Props) {
   const d = settings.design;
   const live = (patch: Partial<DesignSpec>, label: string) => onLive({ ...settings, design: { ...d, ...patch } }, label);
   const commit = (s: ProjectSettings, label: string) => onCommit(s, label);
@@ -268,6 +269,9 @@ function Adjustments({ settings, onLive, onEndLive, onCommit, diag }: Props) {
       <p className="small muted num" style={{ margin: 0 }}>
         Mancha: {num(diag.layout.metrics.charsPerLine)} caracteres × {num(diag.layout.metrics.linesPerPage)} linhas por página.
       </p>
+
+      <hr className="sep" />
+      <OpeningSettings book={book} diag={diag} settings={settings} onCommit={commit} />
 
       <hr className="sep" />
       <p className="section-title">Gráfica e tiragem</p>

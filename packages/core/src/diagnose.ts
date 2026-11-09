@@ -76,6 +76,31 @@ function findIssues(
     }
   }
 
+  for (const el of layout.elements) {
+    const o = el.opening;
+    if (!o) continue;
+    const label = `${KIND_LABELS[el.kind]} “${el.title}”`;
+    if (o.shortParagraph) {
+      issues.push({
+        kind: 'abertura',
+        severity: 'alerta',
+        page: el.startPage,
+        elementId: el.id,
+        message: `${label}: o primeiro parágrafo é mais curto que a capitular.`,
+        suggestion: 'Reduza a capitular para 2 linhas, junte o parágrafo ao seguinte ou desligue a capitular neste capítulo.',
+      });
+    } else if (o.skipped === 'numero' || o.skipped === 'dialogo') {
+      issues.push({
+        kind: 'abertura',
+        severity: 'info',
+        page: el.startPage,
+        elementId: el.id,
+        message: `${label} abre sem capitular (${o.skipped === 'numero' ? 'começa com algarismo' : 'começa com diálogo'}).`,
+        suggestion: o.skipped === 'numero' ? 'Ative “capitular em algarismos” se quiser manter o padrão.' : 'Mude a regra de diálogo para “pendurar a pontuação” se quiser capitular.',
+      });
+    }
+  }
+
   if (process === 'offset' && padding > 0) {
     issues.push({
       kind: 'fecho_caderno',

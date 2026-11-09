@@ -76,6 +76,52 @@ export interface DesignSpec {
   /** Fração da página de abertura de capítulo ocupada pelo "afundamento". */
   chapterSink: number;
   chaptersOnOdd: boolean;
+  /** Tratamento tipográfico da abertura (capitular, versalete, ornamento, numeral). */
+  chapterOpening: ChapterOpening;
+}
+
+export type OpeningPreset = 'classica' | 'moderna' | 'sobria' | 'personalizada';
+
+export interface ChapterOpening {
+  preset: OpeningPreset;
+  dropCap: {
+    mode: 'nenhuma' | 'rebaixada' | 'elevada';
+    /** Altura em linhas de texto (2–4). */
+    lines: number;
+    /** Respiro entre a capitular e o texto, em mm. */
+    gapMm: number;
+  };
+  leadIn: {
+    style: 'normal' | 'versalete';
+    scope: 'linha' | 'palavras';
+    /** Quantas palavras em versalete quando scope = 'palavras'. */
+    words: number;
+  };
+  ornament: 'nenhum' | 'vinheta' | 'fio';
+  number: 'nenhum' | 'arabico' | 'romano' | 'extenso';
+  /** Diálogo/aspas no início: pendura a pontuação e capitula a letra, ou não usa capitular. */
+  dialogue: 'pendurar' | 'sem_capitular';
+  /** Parágrafo que começa com algarismo recebe capitular? */
+  capOnDigits: boolean;
+  appliesTo: ElementKind[];
+}
+
+/** Resultado da análise de abertura de um elemento. */
+export interface OpeningResult {
+  /** Letra capitulada (null = sem capitular). */
+  cap: string | null;
+  /** Pontuação pendurada antes da capitular (travessão, aspas). */
+  hanging: string;
+  /** Palavras em versalete após a capitular. */
+  leadIn: string;
+  /** Linhas acrescentadas ao elemento por conta da abertura. */
+  extraLines: number;
+  /** Índice do bloco que recebe a capitular. */
+  blockIndex: number;
+  /** Motivo quando a capitular não é aplicada. */
+  skipped?: 'sem_paragrafo' | 'numero' | 'dialogo';
+  /** Parágrafo mais curto que a altura da capitular. */
+  shortParagraph: boolean;
 }
 
 export interface LaudaConfig {
@@ -170,6 +216,7 @@ export interface ElementLayout {
   pages: number;
   lines: number;
   lastPageLines: number;
+  opening?: OpeningResult;
 }
 
 export interface SignaturePlan {
@@ -179,7 +226,7 @@ export interface SignaturePlan {
   paddingPages: number;
 }
 
-export type IssueKind = 'pagina_curta' | 'linhas_viuvas' | 'fecho_caderno' | 'caderno_fracionado' | 'baixa_confianca';
+export type IssueKind = 'pagina_curta' | 'linhas_viuvas' | 'fecho_caderno' | 'caderno_fracionado' | 'baixa_confianca' | 'abertura';
 
 export interface Issue {
   kind: IssueKind;

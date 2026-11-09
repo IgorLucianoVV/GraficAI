@@ -10,3 +10,4 @@ export * from './variants.ts';
 export * from './classify.ts';
 export * from './defaults.ts';
 export * from './sample.ts';
+export * from './opening.ts';

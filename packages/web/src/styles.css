@@ -251,3 +251,25 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: var(--space-2) 
   .topbar .tabs, .panel, .btn { display: none !important; }
   .workspace { display: block; }
 }
+
+/* ---------- Abertura de capítulo ---------- */
+.seg { display: flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; }
+.seg button { flex: 1; min-height: 30px; border: 0; background: var(--surface-raised); color: var(--text-muted); font: inherit; font-size: 12.5px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--border-strong); }
+.seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+:root[data-theme='dark'] .seg button.on { color: #0d1626; }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.opening-preview { background: var(--paper); color: var(--paper-ink); border: 1px solid var(--border-strong); border-radius: 2px; padding: 22px 16px 14px 20px; font-family: var(--font-book); height: 210px; overflow: hidden; position: relative; }
+.opening-preview::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 28px; background: linear-gradient(transparent, var(--paper)); }
+.op-head { text-align: center; margin-bottom: 14px; }
+.op-num { font-size: 18px; line-height: 1.1; letter-spacing: .04em; }
+.op-num.extenso { font-size: 11px; font-variant: small-caps; letter-spacing: .12em; }
+.op-title { font-size: 12px; font-style: italic; margin-top: 2px; }
+.op-orn { font-size: 13px; margin-top: 4px; }
+.op-rule { width: 28%; margin: 6px auto 0; border: 0; border-top: 0.5px solid currentColor; opacity: .7; }
+.op-text { margin: 0; text-align: justify; hyphens: auto; }
+.op-text .sc, .op-text.sc-line::first-line { font-variant: small-caps; letter-spacing: .03em; }
+.op-drop { float: left; line-height: .74; margin: .02em .08em 0 0; display: flex; align-items: flex-start; }
+.op-raised { line-height: 1; vertical-align: baseline; }
+.op-hang { font-size: 32%; align-self: flex-start; margin-right: .05em; }
+.pg-cap { position: absolute; left: 3px; top: 1px; font-family: var(--font-book); font-size: 9px; line-height: 1; color: var(--text-muted); }

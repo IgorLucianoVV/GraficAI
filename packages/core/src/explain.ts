@@ -37,7 +37,21 @@ export function explainPage(book: Book, d: Diagnosis, pageNumber: number): { tit
   if (el && lay) {
     const pos = pageNumber - lay.startPage + 1;
     lines.push(`${KIND_LABELS[el.kind]} “${el.title}”, página ${pos} de ${lay.pages}.`);
-    if (page.isOpener) lines.push('Página de abertura do elemento.');
+    if (page.isOpener) {
+      lines.push('Página de abertura do elemento.');
+      const o = lay.opening;
+      if (o) {
+        const parts: string[] = [];
+        if (o.cap) parts.push(`capitular “${o.hanging.trim()}${o.cap}”`);
+        else if (o.skipped === 'numero') parts.push('sem capitular (começa com algarismo)');
+        else if (o.skipped === 'dialogo') parts.push('sem capitular (começa com diálogo)');
+        if (o.leadIn) parts.push(`versalete em “${o.leadIn}”`);
+        if (parts.length || o.extraLines) {
+          const delta = o.extraLines === 0 ? 'sem efeito na contagem' : `${o.extraLines > 0 ? '+' : ''}${o.extraLines} ${Math.abs(o.extraLines) === 1 ? 'linha' : 'linhas'} no capítulo`;
+          lines.push(`Abertura: ${parts.join(', ') || 'ornamento'} — ${delta}.`);
+        }
+      }
+    }
     lines.push(`Ocupação: ${Math.round(page.fill * 100)}%.`);
     lines.push(`Classificado por ${el.classifiedBy === 'usuario' ? 'você' : el.classifiedBy === 'llm' ? 'IA' : 'regra'}: ${el.rationale}`);
   }

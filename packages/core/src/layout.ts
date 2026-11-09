@@ -1,5 +1,6 @@
 import type { Block, Book, BookElement, DesignSpec, ElementLayout, Layout, Page, PageMetrics } from './types.ts';
 import { ruleFor } from './rules.ts';
+import { analyzeOpening } from './opening.ts';
 
 const PT_TO_MM = 0.352778;
 
@@ -50,6 +51,8 @@ export function layoutElement(el: BookElement, book: Book, m: PageMetrics, d: De
   }
   let lines = el.kind === 'sumario' ? sumarioLines(book) : 0;
   for (const b of el.blocks) lines += blockLines(b, m, d);
+  const opening = analyzeOpening(el, m, d) ?? undefined;
+  if (opening) lines += opening.extraLines;
   lines = Math.ceil(lines);
 
   const sink = el.kind === 'capitulo' ? d.chapterSink : d.chapterSink * 0.6;
@@ -64,7 +67,7 @@ export function layoutElement(el: BookElement, book: Book, m: PageMetrics, d: De
     pages = 1 + Math.ceil(rest / m.linesPerPage);
     lastPageLines = rest - (pages - 2) * m.linesPerPage;
   }
-  return { id: el.id, title: el.title, kind: el.kind, pages, lines, lastPageLines };
+  return { id: el.id, title: el.title, kind: el.kind, pages, lines, lastPageLines, opening };
 }
 
 /**

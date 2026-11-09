@@ -26,6 +26,7 @@ function pageLabel(p: Page, book: Book): string {
 export function Flatplan({ book, diag, selected, onSelect, highlight }: Props) {
   const issuePages = new Set(diag.issues.filter((i) => i.page).map((i) => i.page!));
   const kindOf = new Map(book.elements.map((e) => [e.id, e.kind]));
+  const capOf = new Map(diag.layout.elements.filter((e) => e.opening?.cap).map((e) => [e.id, e.opening!.cap!]));
   let cursor = 0;
 
   return (
@@ -78,6 +79,11 @@ export function Flatplan({ book, diag, selected, onSelect, highlight }: Props) {
                               opacity: 0.35 + 0.5 * p.fill,
                             }}
                           />
+                        )}
+                        {p.isOpener && p.elementId && capOf.has(p.elementId) && (
+                          <span className="pg-cap" aria-hidden>
+                            {capOf.get(p.elementId)}
+                          </span>
                         )}
                         <span className="pg-num">{p.number}</span>
                       </button>
