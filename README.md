@@ -6,7 +6,7 @@ Esta é a **fase F1 (Diagnóstico)** do plano de implementação.
 
 ## O que já funciona
 
-- **Ingestão** de `.docx`, `.md` e `.txt` (DOCX via mammoth; notas de rodapé contadas à parte).
+- **Ingestão** de `.docx`, `.md` e `.txt` (DOCX via mammoth). A formatação dentro do parágrafo é preservada como trechos com estilo (itálico, negrito, sobrescrito, subscrito) e as notas de rodapé ficam ligadas à chamada (`Run.noteRef` ↔ `Block.noteId`), anexadas ao capítulo que as chama. No Markdown: `*itálico*`, `**negrito**`, `^sup^`, `~sub~` e notas `[^id]`. O texto puro continua alimentando laudas e castoff.
 - **Estrutura do livro** por regras (NBR 6029): capítulos, prefácio, dedicatória, epígrafe, referências etc., com confiança e motivo de cada classificação. Refinamento opcional com Claude quando `ANTHROPIC_API_KEY` está definida. Elementos pré-textuais padrão (falsa folha de rosto, folha de rosto, ficha) são adicionados quando faltam.
 - **Laudas** configuráveis (1.250 / 1.400 / 1.800 / 2.100 ou valor livre), com valor bruto e arredondamento contratual, por elemento, exportáveis em CSV.
 - **Castoff por bloco**: mancha calculada a partir de formato, margens, corpo e entrelinha; aberturas de capítulo com afundamento.

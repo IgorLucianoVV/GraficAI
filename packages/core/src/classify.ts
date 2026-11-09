@@ -1,10 +1,13 @@
-import type { Block, BlockType, Book, BookElement, Confidence, ElementKind } from './types.ts';
+import type { Block, BlockType, Book, BookElement, Confidence, ElementKind, Run } from './types.ts';
+import { attachNotes, compactRuns } from './inline.ts';
 
 /** Bloco bruto vindo do conversor de DOCX (mammoth → HTML). */
 export interface RawBlock {
   tag: 'h1' | 'h2' | 'h3' | 'p' | 'blockquote' | 'li' | 'table' | 'img' | 'note';
   text: string;
   bold?: boolean;
+  runs?: Run[];
+  noteId?: string;
 }
 
 const norm = (s: string) =>
@@ -104,7 +107,7 @@ export function classifyBlocks(raw: RawBlock[], title = 'Livro sem título'): Bo
       elements.push(current);
       continue;
     }
-    const block: Block = { type: BLOCK_TYPE[b.tag], text: b.text.trim() };
+    const block = toBlock(b);
     if (current) current.blocks.push(block);
     else preface.push(b);
   }
@@ -128,14 +131,22 @@ export function classifyBlocks(raw: RawBlock[], title = 'Livro sem título'): Bo
       id: newId(),
       kind,
       title: kind === 'dedicatoria' ? 'Dedicatória' : kind === 'epigrafe' ? 'Epígrafe' : 'Texto inicial',
-      blocks: preface.map((b) => ({ type: BLOCK_TYPE[b.tag], text: b.text.trim() })),
+      blocks: preface.map(toBlock),
       confidence,
       classifiedBy: 'regra',
       rationale,
     });
   }
 
-  return { title, elements, source: 'docx' };
+  return { title, elements: attachNotes(elements), source: 'docx' };
+}
+
+function toBlock(b: RawBlock): Block {
+  const block: Block = { type: BLOCK_TYPE[b.tag], text: b.text.trim() };
+  const runs = b.runs && compactRuns(b.runs);
+  if (runs) block.runs = runs;
+  if (b.noteId) block.noteId = b.noteId;
+  return block;
 }
 
 /** Adiciona falsa folha de rosto, folha de rosto e ficha quando faltarem. */

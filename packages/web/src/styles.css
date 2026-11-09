@@ -295,3 +295,4 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: var(--space-2) 
 .sheet-table th { color: var(--text-muted); font-weight: 500; }
 .sheet-table tr.on td { background: var(--accent-soft); font-weight: 600; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.note-ref { font-size: 0.7em; color: var(--accent); margin-left: 1px; }

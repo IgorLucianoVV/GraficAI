@@ -13,3 +13,4 @@ export * from './sample.ts';
 export * from './opening.ts';
 export * from './export.ts';
 export * from './impose.ts';
+export * from './inline.ts';

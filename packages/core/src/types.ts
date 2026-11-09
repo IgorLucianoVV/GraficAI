@@ -27,9 +27,25 @@ export type ElementGroup = 'pre' | 'texto' | 'pos';
 
 export type BlockType = 'titulo' | 'subtitulo' | 'paragrafo' | 'citacao' | 'lista' | 'nota' | 'imagem' | 'tabela';
 
+/** Trecho de texto com estilo. `noteRef` marca a chamada de nota (texto vazio). */
+export interface Run {
+  text: string;
+  italic?: boolean;
+  bold?: boolean;
+  smallcaps?: boolean;
+  sup?: boolean;
+  sub?: boolean;
+  noteRef?: string;
+}
+
 export interface Block {
   type: BlockType;
+  /** Texto puro (contagem de laudas e castoff). Igual à concatenação de `runs`. */
   text: string;
+  /** Formatação dentro do bloco. Ausente = texto sem estilo. */
+  runs?: Run[];
+  /** Blocos 'nota': identificador referenciado por `Run.noteRef`. */
+  noteId?: string;
 }
 
 export type Confidence = 'alta' | 'media' | 'baixa';

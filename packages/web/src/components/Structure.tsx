@@ -1,6 +1,8 @@
 import { Fragment, useMemo, useState } from 'react';
 import { ELEMENT_RULES, KIND_LABELS, GROUP_LABELS, type Book, type BookElement, type ElementKind } from '@graficai/core';
 import { groupColor, num } from '../format.ts';
+import { inlineStats } from '@graficai/core';
+import { Runs, blocksRuns } from './Runs.tsx';
 
 interface Props {
   book: Book;
@@ -125,6 +127,7 @@ export function Structure({ book, llmUsed, warnings, onChange, onContinue }: Pro
                       <span className="dot" style={{ background: groupColor(e.kind) }} aria-hidden />
                       <span className="num muted small">{i + 1}.</span>
                       <span>{e.title}</span>
+                      <InlineBadges el={e} />
                     </div>
                   </td>
                   <td>
@@ -178,7 +181,7 @@ export function Structure({ book, llmUsed, warnings, onChange, onContinue }: Pro
                         <p>
                           <strong>{e.classifiedBy === 'llm' ? 'IA' : 'Regra'}:</strong> {e.rationale}
                         </p>
-                        <p className="muted">{e.blocks.map((b) => b.text).join(' ').slice(0, 220) || 'Sem texto (página fixa).'}…</p>
+                        <p className="muted">{e.blocks.length ? <Runs runs={blocksRuns(e.blocks)} limit={260} /> : 'Sem texto (página fixa).'}</p>
                       </div>
                     </td>
                   </tr>
@@ -189,5 +192,16 @@ export function Structure({ book, llmUsed, warnings, onChange, onContinue }: Pro
         </table>
       </div>
     </main>
+  );
+}
+
+function InlineBadges({ el }: { el: BookElement }) {
+  const st = inlineStats(el);
+  if (!st.notes && !st.italic && !st.bold) return null;
+  const parts = [st.notes && `${st.notes} ${st.notes === 1 ? 'nota' : 'notas'}`, st.italic && `${st.italic} itálico${st.italic === 1 ? '' : 's'}`, st.bold && `${st.bold} negrito${st.bold === 1 ? '' : 's'}`].filter(Boolean);
+  return (
+    <span className="small muted" title="Formatação preservada do original">
+      · {parts.join(' · ')}
+    </span>
   );
 }

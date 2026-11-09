@@ -1,4 +1,5 @@
-import type { Block, Book, BookElement, ElementKind } from './types.ts';
+import type { Block, Book, BookElement, ElementKind, Run } from './types.ts';
+import { normalizeRuns } from './inline.ts';
 
 // Gerador determinístico de um livro de exemplo (texto fictício, sem direitos de terceiros).
 const WORDS = (
@@ -30,6 +31,37 @@ function paragraph(r: () => number): string {
   return Array.from({ length: n }, () => sentence(r)).join(' ');
 }
 
+/**
+ * Acrescenta itálico (um termo por parágrafo, às vezes) e chamadas de nota,
+ * com gerador próprio para não alterar o texto do exemplo.
+ */
+function decorate(b: Block, r: () => number, note: string | null): Block[] {
+  if (b.type !== 'paragrafo') return [b];
+  const words = b.text.split(' ');
+  const runs: Run[] = [];
+  if (r() < 0.35 && words.length > 6) {
+    const i = 2 + Math.floor(r() * (words.length - 4));
+    runs.push({ text: words.slice(0, i).join(' ') + ' ' }, { text: words[i].replace(/[.?]$/, ''), italic: true }, { text: words[i].match(/[.?]$/)?.[0] ?? '' }, { text: ' ' + words.slice(i + 1).join(' ') });
+  } else runs.push({ text: b.text });
+  if (!note) {
+    const n = normalizeRuns(runs);
+    return [n.length > 1 ? { ...b, runs: n } : b];
+  }
+  // Chamada de nota no fim da primeira frase.
+  const out: Run[] = [];
+  let done = false;
+  for (const run of runs) {
+    const at = done || run.italic ? -1 : run.text.search(/[.?]( |$)/);
+    if (at < 0) out.push(run);
+    else {
+      out.push({ ...run, text: run.text.slice(0, at + 1) }, { text: '', noteRef: note }, { ...run, text: run.text.slice(at + 1) });
+      done = true;
+    }
+  }
+  const n = normalizeRuns(out);
+  return [{ ...b, runs: n }, { type: 'nota', noteId: note, text: `Nota do exemplo: ${b.text.split(' ').slice(0, 9).join(' ').replace(/[.?]$/, '')}.` }];
+}
+
 const el = (id: string, kind: ElementKind, title: string, blocks: Block[]): BookElement => ({
   id,
   kind,
@@ -52,7 +84,10 @@ export function sampleBook(): Book {
       if (p > 0 && p % 18 === 0) blocks.push({ type: 'subtitulo', text: `Parte ${p / 18 + 1}` });
       blocks.push({ type: r() < 0.06 ? 'citacao' : 'paragrafo', text: paragraph(r) });
     }
-    return el(`cap-${i + 1}`, 'capitulo', `${i + 1}. ${t}`, blocks);
+    const deco = rng(7 + i);
+    let paras = 0;
+    const styled = blocks.flatMap((b) => decorate(b, deco, b.type === 'paragrafo' && ++paras % 9 === 0 ? `n${i + 1}-${paras / 9}` : null));
+    return el(`cap-${i + 1}`, 'capitulo', `${i + 1}. ${t}`, styled);
   });
 
   return {
