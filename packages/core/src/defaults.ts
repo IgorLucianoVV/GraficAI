@@ -1,5 +1,5 @@
 import { openingPreset } from './opening.ts';
-import type { DesignSpec, LaudaConfig, PaperProfile, PrinterProfile, ProjectSettings } from './types.ts';
+import type { ProductionSpec, DesignSpec, LaudaConfig, PaperProfile, PrinterProfile, ProjectSettings } from './types.ts';
 
 export const PAPERS: PaperProfile[] = [
   { name: 'Offset 75 g', grammage: 75, mmPerPage: 0.05 },
@@ -90,6 +90,16 @@ export const PRINTERS: PrinterProfile[] = [
   },
 ];
 
+export const DEFAULT_PRODUCTION: ProductionSpec = {
+  interiorColors: '1 × 1 (preto)',
+  cover: '4 × 0 cores em cartão 250 g, laminação fosca',
+  finishing: 'Brochura, lombada quadrada, cola PUR',
+  flapsMm: 0,
+  bleedMm: 5,
+  notes: '',
+  contact: '',
+};
+
 export function defaultSettings(): ProjectSettings {
-  return { design: JSON.parse(JSON.stringify(DEFAULT_DESIGN)) as DesignSpec, lauda: { ...DEFAULT_LAUDA }, printer: JSON.parse(JSON.stringify(PRINTERS[0])) as PrinterProfile, run: 1000 };
+  return { design: JSON.parse(JSON.stringify(DEFAULT_DESIGN)) as DesignSpec, lauda: { ...DEFAULT_LAUDA }, printer: JSON.parse(JSON.stringify(PRINTERS[0])) as PrinterProfile, run: 1000, production: { ...DEFAULT_PRODUCTION } };
 }

@@ -273,3 +273,18 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: var(--space-2) 
 .op-raised { line-height: 1; vertical-align: baseline; }
 .op-hang { font-size: 32%; align-self: flex-start; margin-right: .05em; }
 .pg-cap { position: absolute; left: 3px; top: 1px; font-family: var(--font-book); font-size: 9px; line-height: 1; color: var(--text-muted); }
+
+/* ---------- Exportação ---------- */
+.dialog { width: min(720px, 94vw); max-height: 86vh; overflow: auto; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.dialog-head { display: flex; justify-content: space-between; align-items: center; }
+.dialog-head h2 { margin: 0; font-family: var(--font-book); font-size: 22px; }
+.dialog-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 12px; }
+.export-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.export-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.export-card h3 { margin: 0; font-size: 15px; }
+.export-card p { margin: 0; flex: 1; }
+.export-prod summary { cursor: pointer; font-size: 13px; color: var(--text-muted); padding: 4px 0; }
+.export-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.export-grid .wide { grid-column: 1 / -1; }
+.field textarea { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-raised); padding: 6px var(--space-2); font: inherit; resize: vertical; }
+@media (max-width: 640px) { .export-cards, .export-grid { grid-template-columns: 1fr; } }

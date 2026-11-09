@@ -17,6 +17,7 @@ Esta é a **fase F1 (Diagnóstico)** do plano de implementação.
 - **Problemas**: finais de capítulo com poucas linhas, páginas pouco ocupadas, caderno incompleto ou fracionado, classificação incerta.
 - **"Por que essa página existe?"**: clique em qualquer página do mapa de cadernos.
 - **Otimizar livro**: propostas A (econômica), B (equilibrada) e C (confortável) dentro de limites de legibilidade (corpo ≥ 10 pt, entrelinha ≥ 1,18×), em Web Worker.
+- **Exportar** (botão no topo ou Ctrl+K): *especificação para a gráfica* em PDF (formato, páginas, plano de cadernos, papel, lombada, capa aberta com orelhas e sangria, estimativa de referência, observações) e *brief para o designer* em PDF (mancha, tipografia, abertura de capítulo, estrutura com página inicial, cadernos, brancos e pontos de atenção). Os documentos são montados em `@graficai/core` (`printerSpecDoc`, `designerBriefDoc`) e desenhados no navegador com jsPDF.
 - **Interface**: painel ao vivo (páginas, cadernos, R$/exemplar, laudas, lombada com deltas), desfazer/refazer (Ctrl+Z / Ctrl+Shift+Z), paleta de comandos (Ctrl+K), modo foco (Ctrl+\\), tema claro/escuro, `prefers-reduced-motion`, navegação por teclado.
 
 > Os valores de custo dos perfis de gráfica são **de exemplo**. Substitua em `packages/core/src/defaults.ts` pela tabela da gráfica parceira.

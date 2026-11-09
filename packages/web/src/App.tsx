@@ -8,6 +8,7 @@ import { LeftPanel } from './components/LeftPanel.tsx';
 import { RightPanel } from './components/RightPanel.tsx';
 import { Flatplan } from './components/Flatplan.tsx';
 import { Summary } from './components/Summary.tsx';
+import { ExportDialog } from './components/ExportDialog.tsx';
 import { CommandPalette, type Command } from './components/CommandPalette.tsx';
 import { brl, download } from './format.ts';
 
@@ -26,6 +27,7 @@ function initialTheme(): Theme {
 export function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [palette, setPalette] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -175,6 +177,7 @@ export function App() {
     { id: 'undo', label: 'Desfazer', shortcut: 'Ctrl Z', run: () => dispatch({ type: 'undo' }), enabled: state.past.length > 0 },
     { id: 'redo', label: 'Refazer', shortcut: 'Ctrl Shift Z', run: () => dispatch({ type: 'redo' }), enabled: state.future.length > 0 },
     { id: 'foco', label: 'Modo foco (esconder painéis)', shortcut: 'Ctrl \\', run: () => dispatch({ type: 'focus' }), enabled: !!state.book },
+    { id: 'exportar', label: 'Exportar para a gráfica ou designer (PDF)…', run: () => setExporting(true), enabled: !!state.book },
     { id: 'export', label: 'Exportar diagnóstico (JSON)', run: exportReport, enabled: !!state.book },
     { id: 'print', label: 'Imprimir relatório', run: () => window.print(), enabled: !!state.book },
     { id: 'tema', label: theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro', run: () => setTheme((t) => (t === 'dark' ? 'light' : 'dark')) },
@@ -192,6 +195,7 @@ export function App() {
         diag={view === 'inicio' ? null : diag}
         prev={prevDiag}
         onPalette={() => setPalette(true)}
+        onExport={state.book ? () => setExporting(true) : undefined}
         theme={theme}
         onTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
       />
@@ -295,6 +299,17 @@ export function App() {
       )}
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
+      {exporting && state.book && diag && (
+        <ExportDialog
+          book={state.book}
+          diag={diag}
+          settings={state.settings}
+          onSaveProduction={(production) => commitSettings({ ...state.settings, production }, 'dados de produção')}
+          onExportJson={exportReport}
+          onClose={() => setExporting(false)}
+          onDone={(message) => dispatch({ type: 'toast', message })}
+        />
+      )}
     </div>
   );
 }

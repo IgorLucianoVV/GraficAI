@@ -10,6 +10,7 @@ interface Props {
   diag: Diagnosis | null;
   prev: Diagnosis | null;
   onPalette: () => void;
+  onExport?: () => void;
   theme: 'light' | 'dark';
   onTheme: () => void;
 }
@@ -20,7 +21,7 @@ function Delta({ value, f, lowerIsBetter = true }: { value: number; f: (n: numbe
   return <span className={`metric-delta ${good ? 'delta-good' : 'delta-bad'}`}>{signed(value, f)}</span>;
 }
 
-export function TopBar({ title, view, onView, diag, prev, onPalette, theme, onTheme }: Props) {
+export function TopBar({ title, view, onView, diag, prev, onPalette, onExport, theme, onTheme }: Props) {
   return (
     <header className="topbar">
       <div className="brand">
@@ -65,6 +66,11 @@ export function TopBar({ title, view, onView, diag, prev, onPalette, theme, onTh
         </div>
       ) : (
         <div style={{ marginLeft: 'auto' }} />
+      )}
+      {onExport && diag && (
+        <button className="btn btn-sm" onClick={onExport}>
+          Exportar
+        </button>
       )}
       <button className="btn btn-ghost btn-sm" onClick={onPalette} aria-label="Abrir paleta de comandos">
         Comandos <span className="kbd">Ctrl K</span>

@@ -156,5 +156,5 @@ export function reducer(state: State, action: Action): State {
 /** Chave para saber se as propostas ainda correspondem ao livro e às configurações atuais. */
 export function variantsKey(book: Book | null, settings: ProjectSettings): string {
   if (!book) return '';
-  return JSON.stringify([book.elements.map((e) => [e.id, e.kind, e.blocks.length]), settings]);
+  return JSON.stringify([book.elements.map((e) => [e.id, e.kind, e.blocks.length]), { ...settings, production: null }]);
 }

@@ -173,6 +173,19 @@ export interface ProjectSettings {
   lauda: LaudaConfig;
   printer: PrinterProfile;
   run: number;
+  /** Especificações de produção que não afetam o cálculo, só a exportação. */
+  production: ProductionSpec;
+}
+
+export interface ProductionSpec {
+  interiorColors: string;
+  cover: string;
+  finishing: string;
+  /** Largura de cada orelha da capa, em mm (0 = sem orelha). */
+  flapsMm: number;
+  bleedMm: number;
+  notes: string;
+  contact: string;
 }
 
 // ---------- Resultados ----------
