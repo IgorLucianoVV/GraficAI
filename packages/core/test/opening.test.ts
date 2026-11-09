@@ -3,6 +3,7 @@ import {
   analyzeOpening,
   chapterNumeral,
   chapterEpigraphIndex,
+  leadQuote,
   defaultSettings,
   diagnose,
   explainPage,
@@ -119,6 +120,13 @@ describe('abertura de capítulo', () => {
     const short = withQuote('Todo rio guarda a memória do caminho.');
     expect(chapterEpigraphIndex(short)).toBe(0);
     expect(analyzeOpening(short, m, d)!.blockIndex).toBe(1);
+    // Regra geral e ajuste por capítulo.
+    const always = { ...d, chapterOpening: { ...d.chapterOpening, leadQuote: { mode: 'texto' as const, maxChars: 300 } } };
+    expect(analyzeOpening(short, pageMetrics(always), always)!.blockIndex).toBe(0);
+    expect(analyzeOpening({ ...short, leadQuote: 'epigrafe' }, pageMetrics(always), always)!.blockIndex).toBe(1);
+    expect(leadQuote({ ...short, leadQuote: 'texto' }, d.chapterOpening)).toMatchObject({ role: 'texto', source: 'elemento' });
+    const bigger = { ...d, chapterOpening: { ...d.chapterOpening, leadQuote: { mode: 'auto' as const, maxChars: 1000 } } };
+    expect(chapterEpigraphIndex(withQuote('Começa uma citação longa. '.repeat(20)), bigger.chapterOpening)).toBe(0);
   });
 
   it('numerais', () => {

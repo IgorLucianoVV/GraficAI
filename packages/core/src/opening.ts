@@ -1,4 +1,4 @@
-import type { BookElement, ChapterOpening, DesignSpec, ElementKind, OpeningPreset, OpeningResult, PageMetrics } from './types.ts';
+import type { BookElement, ChapterOpening, DesignSpec, ElementKind, LeadQuoteRule, OpeningPreset, OpeningResult, PageMetrics } from './types.ts';
 
 const PT_TO_MM = 0.352778;
 /** Altura das maiúsculas em relação ao corpo (serifadas de livro ficam entre 0,65 e 0,70). */
@@ -18,6 +18,8 @@ const CAP_WIDTH_EM: Record<string, number> = {
 };
 const DEFAULT_CAP_EM = 0.7;
 
+export const DEFAULT_LEAD_QUOTE: LeadQuoteRule = { mode: 'auto', maxChars: 300 };
+
 export const OPENING_PRESETS: Record<Exclude<OpeningPreset, 'personalizada'>, ChapterOpening> = {
   classica: {
     preset: 'classica',
@@ -28,6 +30,7 @@ export const OPENING_PRESETS: Record<Exclude<OpeningPreset, 'personalizada'>, Ch
     dialogue: 'pendurar',
     capOnDigits: false,
     appliesTo: ['capitulo'],
+    leadQuote: { ...DEFAULT_LEAD_QUOTE },
   },
   moderna: {
     preset: 'moderna',
@@ -38,6 +41,7 @@ export const OPENING_PRESETS: Record<Exclude<OpeningPreset, 'personalizada'>, Ch
     dialogue: 'pendurar',
     capOnDigits: false,
     appliesTo: ['capitulo'],
+    leadQuote: { ...DEFAULT_LEAD_QUOTE },
   },
   sobria: {
     preset: 'sobria',
@@ -48,6 +52,7 @@ export const OPENING_PRESETS: Record<Exclude<OpeningPreset, 'personalizada'>, Ch
     dialogue: 'pendurar',
     capOnDigits: false,
     appliesTo: ['capitulo'],
+    leadQuote: { ...DEFAULT_LEAD_QUOTE },
   },
 };
 
@@ -75,23 +80,50 @@ export function dropCapSizePt(d: DesignSpec, lines: number): number {
   return ((lines - 1) * d.leadingPt + CAP_HEIGHT_EM * d.bodySizePt) / CAP_HEIGHT_EM;
 }
 
-/** Citação curta no início do capítulo é epígrafe; acima disso é texto e recebe a abertura. */
-export const EPIGRAPH_MAX_CHARS = 300;
-
-/** Índice do bloco de epígrafe do capítulo (citação curta antes do texto), ou -1. */
-export function chapterEpigraphIndex(el: BookElement): number {
-  const i = el.blocks.findIndex((b) => b.type !== 'nota');
-  const b = el.blocks[i];
-  return b && b.type === 'citacao' && b.text.trim().length <= EPIGRAPH_MAX_CHARS && el.blocks.some((x, j) => j > i && x.type === 'paragrafo') ? i : -1;
+export interface LeadQuoteDecision {
+  /** Índice da citação que abre o elemento. */
+  index: number;
+  chars: number;
+  role: 'epigrafe' | 'texto';
+  /** De onde veio a decisão. */
+  source: 'elemento' | 'regra' | 'tamanho';
 }
 
 /**
- * Bloco que abre o capítulo: o primeiro bloco de texto (parágrafo ou citação
- * longa), pulando uma epígrafe curta.
+ * Elemento que começa com citação: decide se ela é epígrafe ou texto.
+ * Ordem: ajuste do elemento → regra geral fixa → tamanho (modo automático).
+ * Retorna null se o elemento não começa com citação seguida de parágrafo.
  */
-export function openingBlockIndex(el: BookElement): number {
-  const epi = chapterEpigraphIndex(el);
+export function leadQuote(el: BookElement, o?: ChapterOpening): LeadQuoteDecision | null {
+  const rule = o?.leadQuote ?? DEFAULT_LEAD_QUOTE;
+  const index = el.blocks.findIndex((b) => b.type !== 'nota');
+  const b = el.blocks[index];
+  if (!b || b.type !== 'citacao' || !el.blocks.some((x, j) => j > index && x.type === 'paragrafo')) return null;
+  const chars = b.text.trim().length;
+  if (el.leadQuote) return { index, chars, role: el.leadQuote, source: 'elemento' };
+  if (rule.mode !== 'auto') return { index, chars, role: rule.mode, source: 'regra' };
+  return { index, chars, role: chars <= rule.maxChars ? 'epigrafe' : 'texto', source: 'tamanho' };
+}
+
+/** Índice da epígrafe do capítulo, ou -1. */
+export function chapterEpigraphIndex(el: BookElement, o?: ChapterOpening): number {
+  const q = leadQuote(el, o);
+  return q?.role === 'epigrafe' ? q.index : -1;
+}
+
+/** Bloco que abre o elemento: o primeiro bloco de texto, pulando a epígrafe. */
+export function openingBlockIndex(el: BookElement, o?: ChapterOpening): number {
+  const epi = chapterEpigraphIndex(el, o);
   return el.blocks.findIndex((b, j) => j !== epi && (b.type === 'paragrafo' || b.type === 'citacao'));
+}
+
+/** Texto curto da decisão, para explicações, avisos e o brief. */
+export function describeLeadQuote(q: LeadQuoteDecision, o?: ChapterOpening): string {
+  const rule = o?.leadQuote ?? DEFAULT_LEAD_QUOTE;
+  const what = q.role === 'epigrafe' ? 'epígrafe (capitular no parágrafo seguinte)' : 'texto (recebe a capitular)';
+  const why =
+    q.source === 'elemento' ? 'definido para este capítulo' : q.source === 'regra' ? 'regra geral' : `regra automática: ${q.chars} caracteres, limite de ${rule.maxChars}`;
+  return `citação inicial tratada como ${what} — ${why}`;
 }
 
 const HANGING = /^[—–\-"“”«'‘’(]+\s*/;
@@ -143,7 +175,7 @@ export function analyzeOpening(el: BookElement, m: PageMetrics, d: DesignSpec): 
   if (!o || !o.appliesTo.includes(el.kind)) return null;
 
   const ornament = ORNAMENT_LINES[o.ornament];
-  const blockIndex = openingBlockIndex(el);
+  const blockIndex = openingBlockIndex(el, o);
   if (blockIndex < 0) {
     return { cap: null, hanging: '', leadIn: '', extraLines: ornament, blockIndex: -1, skipped: o.dropCap.mode !== 'nenhuma' ? 'sem_paragrafo' : undefined, shortParagraph: false };
   }

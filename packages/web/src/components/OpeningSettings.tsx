@@ -1,24 +1,35 @@
-import type { Book, ChapterOpening, Diagnosis, ProjectSettings } from '@graficai/core';
-import { openingBlockIndex, OPENING_EXTRA_KINDS, PRESET_LABELS, chapterNumeral, dropCapSizePt, openingPreset, splitOpening } from '@graficai/core';
+import type { Book, BookElement, ChapterOpening, Diagnosis, LeadQuoteRule, ProjectSettings } from '@graficai/core';
+import { DEFAULT_LEAD_QUOTE, leadQuote, openingBlockIndex, OPENING_EXTRA_KINDS, PRESET_LABELS, chapterNumeral, dropCapSizePt, openingPreset, splitOpening } from '@graficai/core';
 
 interface Props {
   book: Book;
   diag: Diagnosis;
   settings: ProjectSettings;
   onCommit: (s: ProjectSettings, label: string) => void;
+  onBook: (b: Book, label: string) => void;
 }
 
 type Preset = Exclude<ChapterOpening['preset'], 'personalizada'>;
 const PRESETS: Preset[] = ['classica', 'moderna', 'sobria'];
 
 /** Seção "Abertura de capítulo" do painel de Ajustes, com prévia ao vivo. */
-export function OpeningSettings({ book, diag, settings, onCommit }: Props) {
+export function OpeningSettings({ book, diag, settings, onCommit, onBook }: Props) {
   const d = settings.design;
   const o = d.chapterOpening;
 
   const set = (patch: Partial<ChapterOpening>, label: string) =>
     onCommit({ ...settings, design: { ...d, chapterOpening: { ...o, ...patch, preset: 'personalizada' } } }, label);
-  const applyPreset = (p: Preset) => onCommit({ ...settings, design: { ...d, chapterOpening: openingPreset(p) } }, `abertura ${PRESET_LABELS[p].toLowerCase()}`);
+  // Trocar de estilo não mexe na regra de citação: é decisão editorial, não de desenho.
+  const applyPreset = (p: Preset) =>
+    onCommit({ ...settings, design: { ...d, chapterOpening: { ...openingPreset(p), leadQuote: lq } } }, `abertura ${PRESET_LABELS[p].toLowerCase()}`);
+  const lq = o.leadQuote ?? DEFAULT_LEAD_QUOTE;
+  const setLq = (patch: Partial<LeadQuoteRule>, label: string) => onCommit({ ...settings, design: { ...d, chapterOpening: { ...o, leadQuote: { ...lq, ...patch } } } }, label);
+  const quoted = book.elements
+    .filter((e) => o.appliesTo.includes(e.kind))
+    .map((e) => ({ e, q: leadQuote(e, o) }))
+    .filter((x): x is { e: BookElement; q: NonNullable<ReturnType<typeof leadQuote>> } => !!x.q);
+  const setOverride = (id: string, v: '' | 'epigrafe' | 'texto', title: string) =>
+    onBook({ ...book, elements: book.elements.map((e) => (e.id === id ? { ...e, leadQuote: v || undefined } : e)) }, `citação inicial de “${title}”`);
 
   const affected = diag.layout.elements.filter((e) => e.opening);
   const extra = affected.reduce((a, e) => a + (e.opening?.extraLines ?? 0), 0);
@@ -120,6 +131,67 @@ export function OpeningSettings({ book, diag, settings, onCommit }: Props) {
           <option value="sem_capitular">Não usar capitular</option>
         </select>
       </div>
+      <div className="rule-box">
+        <div className="field">
+          <label htmlFor="op-lq">Citação no início do capítulo</label>
+          <select id="op-lq" value={lq.mode} onChange={(e) => setLq({ mode: e.target.value as LeadQuoteRule['mode'] }, 'regra de citação inicial')}>
+            <option value="auto">Automático pelo tamanho</option>
+            <option value="epigrafe">Sempre epígrafe</option>
+            <option value="texto">Sempre texto</option>
+          </select>
+        </div>
+        {lq.mode === 'auto' && (
+          <div className="field">
+            <label htmlFor="op-lq-max">Epígrafe até (caracteres)</label>
+            <input
+              id="op-lq-max"
+              type="number"
+              min={50}
+              max={2000}
+              step={50}
+              value={lq.maxChars}
+              onChange={(e) => {
+                const v = Math.round(Number(e.target.value));
+                if (v >= 50 && v <= 2000) setLq({ maxChars: v }, 'limite de epígrafe');
+              }}
+            />
+          </div>
+        )}
+        <p className="small muted" style={{ margin: 0 }}>
+          <strong>Epígrafe</strong>: alinhada à direita, em itálico; a capitular vai no parágrafo seguinte. <strong>Texto</strong>: a citação abre o capítulo e
+          recebe a capitular.
+        </p>
+        {quoted.length > 0 && (
+          <table className="sheet-table small">
+            <thead>
+              <tr>
+                <th>Capítulo</th>
+                <th>Citação</th>
+                <th>Tratamento</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quoted.map(({ e, q }) => (
+                <tr key={e.id}>
+                  <td>{e.title}</td>
+                  <td className="num">{q.chars} car.</td>
+                  <td>
+                    <select
+                      aria-label={`Citação inicial de “${e.title}”`}
+                      value={e.leadQuote ?? ''}
+                      onChange={(ev) => setOverride(e.id, ev.target.value as '' | 'epigrafe' | 'texto', e.title)}
+                    >
+                      <option value="">Regra ({q.source === 'elemento' ? '—' : q.role === 'epigrafe' ? 'epígrafe' : 'texto'})</option>
+                      <option value="epigrafe">Epígrafe</option>
+                      <option value="texto">Texto</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
       <label className="check small">
         <input type="checkbox" checked={o.capOnDigits} onChange={(e) => set({ capOnDigits: e.target.checked }, 'capitular em algarismos')} />
         Capitular também em algarismos
@@ -150,12 +222,12 @@ export function OpeningPreview({ book, settings }: { book: Book; settings: Proje
   const d = settings.design;
   const o = d.chapterOpening;
   const targets = book.elements.filter((e) => o.appliesTo.includes(e.kind));
-  const el = targets.find((e) => openingBlockIndex(e) >= 0) ?? book.elements.find((e) => e.kind === 'capitulo');
+  const el = targets.find((e) => openingBlockIndex(e, o) >= 0) ?? book.elements.find((e) => e.kind === 'capitulo');
   if (!el) return null;
 
   const chapterIndex = book.elements.filter((e) => e.kind === 'capitulo').indexOf(el) + 1;
   const numeral = el.kind === 'capitulo' && chapterIndex > 0 ? chapterNumeral(chapterIndex, o.number) : '';
-  const para = el.blocks[openingBlockIndex(el)]?.text ?? '';
+  const para = el.blocks[openingBlockIndex(el, o)]?.text ?? '';
   const sp = splitOpening(para.slice(0, 700), o);
 
   const lh = PREVIEW_BODY_PX * (d.leadingPt / d.bodySizePt);

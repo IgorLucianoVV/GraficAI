@@ -1,6 +1,6 @@
 import type { Block, Book, BookElement, ProjectSettings, Run } from './types.ts';
 import { ruleFor } from './rules.ts';
-import { analyzeOpening, chapterEpigraphIndex, chapterNumeral } from './opening.ts';
+import { analyzeOpening, chapterEpigraphIndex, chapterNumeral, describeLeadQuote, leadQuote } from './opening.ts';
 import { pageMetrics } from './layout.ts';
 import { blockRuns } from './inline.ts';
 
@@ -344,7 +344,9 @@ function renderElement(el: BookElement, book: Book, settings: ProjectSettings, c
   const opening = applies ? analyzeOpening(el, pageMetrics(d), d) : null;
   // A capitular é um bloco; o parágrafo seguinte precisa do recuo explícito.
   const indentNext = opening && opening.blockIndex >= 0 && el.blocks[opening.blockIndex].type === 'paragrafo' ? opening.blockIndex + 1 : -1;
-  const epigraph = el.kind === 'capitulo' || applies ? chapterEpigraphIndex(el) : -1;
+  const epigraph = el.kind === 'capitulo' || applies ? chapterEpigraphIndex(el, op) : -1;
+  const lq = applies ? leadQuote(el, op) : null;
+  if (lq) out.unshift(`// Abertura: ${describeLeadQuote(lq, op)}`);
   let i = 0;
   while (i < el.blocks.length) {
     const b = el.blocks[i];

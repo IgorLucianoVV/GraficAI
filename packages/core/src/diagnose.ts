@@ -1,5 +1,6 @@
 import type { Book, Diagnosis, Imposition, Issue, Page, ProjectSettings, DesignSpec, SheetOption, TextStats } from './types.ts';
 import { impose, sheetLabel } from './impose.ts';
+import { describeLeadQuote, leadQuote } from './opening.ts';
 import { countText } from './laudas.ts';
 import { layoutBook } from './layout.ts';
 import { describePlan, evenWorking, planSignatures } from './signatures.ts';
@@ -60,7 +61,7 @@ export function diagnose(book: Book, settings: ProjectSettings, designOverride?:
 
   const cost = estimateCost(plan, printer, settings.run, imposition);
   const ew = evenWorking(layout.contentPages, sizes);
-  const issues = [...pre, ...findIssues(book, { ...layout, pages }, plan.paddingPages, ew, sizes, printer.process), ...impositionIssues(imposition, sheetOptions, design)];
+  const issues = [...pre, ...findIssues(book, { ...layout, pages }, plan.paddingPages, ew, sizes, printer.process, design), ...impositionIssues(imposition, sheetOptions, design)];
 
   return {
     stats,
@@ -82,6 +83,7 @@ function findIssues(
   ew: Diagnosis['evenWorking'],
   sizes: number[],
   process: 'offset' | 'digital',
+  design: DesignSpec,
 ): Issue[] {
   const issues: Issue[] = [];
   const lpp = layout.metrics.linesPerPage;
@@ -112,9 +114,22 @@ function findIssues(
     }
   }
 
+  const byId = new Map(book.elements.map((e) => [e.id, e]));
   for (const el of layout.elements) {
     const o = el.opening;
     if (!o) continue;
+    const src = byId.get(el.id);
+    const lq = src ? leadQuote(src, design.chapterOpening) : null;
+    if (lq) {
+      issues.push({
+        kind: 'abertura',
+        severity: 'info',
+        page: el.startPage,
+        elementId: el.id,
+        message: `${KIND_LABELS[el.kind]} “${el.title}” abre com citação: ${describeLeadQuote(lq, design.chapterOpening)}.`,
+        suggestion: 'Para mudar, use Ajustes → Abertura de capítulo → Citação no início do capítulo.',
+      });
+    }
     const label = `${KIND_LABELS[el.kind]} “${el.title}”`;
     if (o.shortParagraph) {
       issues.push({

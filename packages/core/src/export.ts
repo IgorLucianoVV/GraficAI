@@ -1,7 +1,7 @@
 import type { Book, Diagnosis, Page, ProjectSettings } from './types.ts';
 import { KIND_LABELS } from './rules.ts';
 import { describePlan } from './signatures.ts';
-import { PRESET_LABELS } from './opening.ts';
+import { DEFAULT_LEAD_QUOTE, PRESET_LABELS, describeLeadQuote, leadQuote } from './opening.ts';
 import { sheetLabel } from './impose.ts';
 
 /**
@@ -177,7 +177,9 @@ export function designerBriefDoc(book: Book, settings: ProjectSettings, diag: Di
       const op = e.opening!;
       const cap = op.cap ? `capitular “${op.hanging.trim()}${op.cap}”` : op.skipped === 'numero' ? 'sem capitular (algarismo)' : op.skipped === 'dialogo' ? 'sem capitular (diálogo)' : 'sem capitular';
       const extra = op.extraLines ? `, ${op.extraLines > 0 ? '+' : ''}${op.extraLines} ${Math.abs(op.extraLines) === 1 ? 'linha' : 'linhas'}` : '';
-      return `${e.title} (p. ${e.startPage}): ${cap}${op.leadIn ? `, versalete em “${op.leadIn}”` : ''}${extra}${op.shortParagraph ? ' — parágrafo mais curto que a capitular' : ''}`;
+      const src = book.elements.find((x) => x.id === e.id);
+      const lq = src ? leadQuote(src, o) : null;
+      return `${e.title} (p. ${e.startPage}): ${lq ? `${describeLeadQuote(lq, o)}; ` : ''}${cap}${op.leadIn ? `, versalete em “${op.leadIn}”` : ''}${extra}${op.shortParagraph ? ' — parágrafo mais curto que a capitular' : ''}`;
     });
 
   const sections: DocSection[] = [
@@ -211,6 +213,10 @@ export function designerBriefDoc(book: Book, settings: ProjectSettings, diag: Di
         ['Diálogo ou aspas no início', o.dialogue === 'pendurar' ? 'Pontuação pendurada, capitular na letra' : 'Sem capitular'],
         ['Algarismo no início', o.capOnDigits ? 'Capitular no algarismo' : 'Sem capitular'],
         ['Aplica-se a', aplica],
+        ['Citação no início do capítulo', (() => {
+          const r = o.leadQuote ?? DEFAULT_LEAD_QUOTE;
+          return r.mode === 'auto' ? `Epígrafe se tiver até ${r.maxChars} caracteres; acima disso é texto e recebe a capitular` : r.mode === 'epigrafe' ? 'Sempre epígrafe (capitular no parágrafo seguinte)' : 'Sempre texto (recebe a capitular)';
+        })()],
       ],
       bullets: openings.length ? openings : undefined,
     },

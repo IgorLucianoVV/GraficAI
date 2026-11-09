@@ -1,8 +1,9 @@
-import type { Book, Diagnosis } from './types.ts';
+import type { Book, ChapterOpening, Diagnosis } from './types.ts';
+import { describeLeadQuote, leadQuote } from './opening.ts';
 import { KIND_LABELS } from './rules.ts';
 
 /** Resposta determinística para "Por que essa página existe?". */
-export function explainPage(book: Book, d: Diagnosis, pageNumber: number): { title: string; lines: string[] } {
+export function explainPage(book: Book, d: Diagnosis, pageNumber: number, opening?: ChapterOpening): { title: string; lines: string[] } {
   const page = d.layout.pages[pageNumber - 1];
   if (!page) return { title: `Página ${pageNumber}`, lines: ['Página fora do livro.'] };
 
@@ -46,6 +47,9 @@ export function explainPage(book: Book, d: Diagnosis, pageNumber: number): { tit
         else if (o.skipped === 'numero') parts.push('sem capitular (começa com algarismo)');
         else if (o.skipped === 'dialogo') parts.push('sem capitular (começa com diálogo)');
         if (o.leadIn) parts.push(`versalete em “${o.leadIn}”`);
+        const src = book.elements.find((e) => e.id === lay.id);
+        const lq = src ? leadQuote(src, opening) : null;
+        if (lq) lines.push(`Início do capítulo: ${describeLeadQuote(lq, opening)}.`);
         if (parts.length || o.extraLines) {
           const delta = o.extraLines === 0 ? 'sem efeito na contagem' : `${o.extraLines > 0 ? '+' : ''}${o.extraLines} ${Math.abs(o.extraLines) === 1 ? 'linha' : 'linhas'} no capítulo`;
           lines.push(`Abertura: ${parts.join(', ') || 'ornamento'} — ${delta}.`);

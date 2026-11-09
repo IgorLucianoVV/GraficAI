@@ -20,6 +20,7 @@ interface Props {
   onLive: (s: ProjectSettings, label: string) => void;
   onEndLive: () => void;
   onCommit: (s: ProjectSettings, label: string) => void;
+  onBook: (b: Book, label: string) => void;
   onSelectPage: (p: number) => void;
   onFixIssue: (i: Issue) => void;
 }
@@ -221,7 +222,7 @@ function Slider({
   );
 }
 
-function Adjustments({ book, settings, onLive, onEndLive, onCommit, diag }: Props) {
+function Adjustments({ book, settings, onLive, onEndLive, onCommit, onBook, diag }: Props) {
   const d = settings.design;
   const live = (patch: Partial<DesignSpec>, label: string) => onLive({ ...settings, design: { ...d, ...patch } }, label);
   const commit = (s: ProjectSettings, label: string) => onCommit(s, label);
@@ -256,7 +257,7 @@ function Adjustments({ book, settings, onLive, onEndLive, onCommit, diag }: Prop
       </p>
 
       <hr className="sep" />
-      <OpeningSettings book={book} diag={diag} settings={settings} onCommit={commit} />
+      <OpeningSettings book={book} diag={diag} settings={settings} onCommit={commit} onBook={onBook} />
 
       <hr className="sep" />
       <p className="section-title">Gráfica e tiragem</p>
@@ -306,8 +307,8 @@ function Adjustments({ book, settings, onLive, onEndLive, onCommit, diag }: Prop
   );
 }
 
-function PageDetail({ book, diag, page, onSelectPage }: Props & { page: number }) {
-  const ex = explainPage(book, diag, page);
+function PageDetail({ book, diag, settings, page, onSelectPage }: Props & { page: number }) {
+  const ex = explainPage(book, diag, page, settings.design.chapterOpening);
   const p = diag.layout.pages[page - 1];
   const el = p?.elementId ? book.elements.find((e) => e.id === p.elementId) : null;
   const lines = p && p.kind === 'conteudo' ? Math.max(1, Math.round(p.fill * 22)) : 0;

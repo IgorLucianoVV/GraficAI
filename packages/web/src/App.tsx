@@ -261,6 +261,7 @@ export function App() {
             onLive={(settings, label) => dispatch({ type: 'live', settings, label })}
             onEndLive={() => dispatch({ type: 'endLive' })}
             onCommit={commitSettings}
+            onBook={(book, label) => dispatch({ type: 'commit', label, book })}
             onSelectPage={(p) => dispatch({ type: 'selectPage', page: p })}
             onFixIssue={() => dispatch({ type: 'view', view: 'estrutura' })}
           />

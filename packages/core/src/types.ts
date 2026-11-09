@@ -59,6 +59,8 @@ export interface BookElement {
   classifiedBy: 'regra' | 'llm' | 'usuario';
   /** Motivo da classificação, mostrado no "Por quê?". */
   rationale: string;
+  /** Ajuste do designer para a citação que abre este elemento (sobrepõe a regra geral). */
+  leadQuote?: 'epigrafe' | 'texto';
 }
 
 export interface Book {
@@ -120,6 +122,14 @@ export interface ChapterOpening {
   /** Parágrafo que começa com algarismo recebe capitular? */
   capOnDigits: boolean;
   appliesTo: ElementKind[];
+  /** Citação no início do capítulo: epígrafe (capitular no parágrafo seguinte) ou texto (recebe a capitular). */
+  leadQuote: LeadQuoteRule;
+}
+
+export interface LeadQuoteRule {
+  /** 'auto' = epígrafe se tiver até `maxChars` caracteres. */
+  mode: 'auto' | 'epigrafe' | 'texto';
+  maxChars: number;
 }
 
 /** Resultado da análise de abertura de um elemento. */
