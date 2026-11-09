@@ -1,18 +1,37 @@
 import { openingPreset } from './opening.ts';
-import type { ProductionSpec, DesignSpec, LaudaConfig, PaperProfile, PrinterProfile, ProjectSettings } from './types.ts';
+import type { SheetFormat, ProductionSpec, DesignSpec, LaudaConfig, PaperProfile, PrinterProfile, ProjectSettings } from './types.ts';
 
 export const PAPERS: PaperProfile[] = [
-  { name: 'Offset 75 g', grammage: 75, mmPerPage: 0.05 },
-  { name: 'Offset 90 g', grammage: 90, mmPerPage: 0.06 },
-  { name: 'Pólen 80 g', grammage: 80, mmPerPage: 0.065 },
+  { name: 'Offset 75 g', grammage: 75, mmPerPage: 0.05, pricePerKg: 11 },
+  { name: 'Offset 90 g', grammage: 90, mmPerPage: 0.06, pricePerKg: 11 },
+  { name: 'Pólen 80 g', grammage: 80, mmPerPage: 0.065, pricePerKg: 14 },
 ];
 
 export const TRIMS: { label: string; w: number; h: number }[] = [
   { label: '14 × 21 cm', w: 140, h: 210 },
+  { label: '13,5 × 20,5 cm', w: 135, h: 205 },
+  { label: '15,5 × 23 cm', w: 155, h: 230 },
   { label: '16 × 23 cm', w: 160, h: 230 },
   { label: '12 × 18 cm', w: 120, h: 180 },
+  { label: '11 × 18 cm (bolso)', w: 110, h: 180 },
+  { label: '17 × 24 cm', w: 170, h: 240 },
+  { label: '20 × 20 cm', w: 200, h: 200 },
   { label: '21 × 28 cm', w: 210, h: 280 },
 ];
+
+/** Folhas de impressão mais comuns no Brasil. */
+export const SHEETS: SheetFormat[] = [
+  { id: 'bb', name: 'BB', widthMm: 660, heightMm: 960 },
+  { id: 'aa', name: 'AA', widthMm: 760, heightMm: 1120 },
+];
+
+const OFFSET_SHEET_DEFAULTS = {
+  sheets: SHEETS,
+  sheetChoice: 'auto',
+  gripperMm: 12,
+  sheetMarginMm: 5,
+  pageAllowanceMm: 6,
+};
 
 export const DEFAULT_DESIGN: DesignSpec = {
   trimWidthMm: 140,
@@ -39,13 +58,14 @@ export const DEFAULT_LAUDA: LaudaConfig = { charsPerLauda: 2100, includeNotes: t
 export const PRINTERS: PrinterProfile[] = [
   {
     id: 'offset-32',
-    name: 'Offset — cadernos de 32/16/8 (exemplo)',
+    name: 'Offset — dobra até 32 pp (exemplo)',
     process: 'offset',
     signatureSizes: [32, 16, 8],
     offset: {
-      setupPerSignature: { 32: 600, 16: 420, 8: 330 },
-      sheetPrice: 1.1,
-      pagesPerSheet: 32,
+      ...OFFSET_SHEET_DEFAULTS,
+      setupByFraction: { '1': 600, '0.5': 420, '0.25': 330 },
+      maxFolding: 32,
+      minSignature: 8,
       runPerThousandSheets: 70,
       waste: 0.08,
       bindingPerCopy: 1.2,
@@ -56,13 +76,14 @@ export const PRINTERS: PrinterProfile[] = [
   },
   {
     id: 'offset-16',
-    name: 'Offset — cadernos de 16/8/4 (exemplo)',
+    name: 'Offset — dobra até 16 pp (exemplo)',
     process: 'offset',
     signatureSizes: [16, 8, 4],
     offset: {
-      setupPerSignature: { 16: 380, 8: 300, 4: 260 },
-      sheetPrice: 0.6,
-      pagesPerSheet: 16,
+      ...OFFSET_SHEET_DEFAULTS,
+      setupByFraction: { '1': 380, '0.5': 300, '0.25': 260 },
+      maxFolding: 16,
+      minSignature: 4,
       runPerThousandSheets: 60,
       waste: 0.08,
       bindingPerCopy: 1.2,
@@ -77,9 +98,10 @@ export const PRINTERS: PrinterProfile[] = [
     process: 'digital',
     signatureSizes: [2],
     offset: {
-      setupPerSignature: {},
-      sheetPrice: 0,
-      pagesPerSheet: 2,
+      ...OFFSET_SHEET_DEFAULTS,
+      setupByFraction: {},
+      maxFolding: 2,
+      minSignature: 2,
       runPerThousandSheets: 0,
       waste: 0,
       bindingPerCopy: 0,

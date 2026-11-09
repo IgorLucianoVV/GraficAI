@@ -173,7 +173,8 @@ button, input, select { font: inherit; color: inherit; }
 .field select, .field input[type='number'], .field input[type='text'] { min-height: 32px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-raised); padding: 0 var(--space-2); }
 .field input[type='range'] { width: 100%; accent-color: var(--accent); min-height: 24px; }
 .row { display: flex; gap: var(--space-2); }
-.row > * { flex: 1; }
+.row > * { flex: 1; min-width: 0; }
+.field select, .field input { width: 100%; box-sizing: border-box; }
 .check { display: flex; gap: var(--space-2); align-items: center; min-height: 28px; }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); }
 hr.sep { border: 0; border-top: 1px solid var(--border); margin: var(--space-2) 0; }
@@ -288,3 +289,9 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: var(--space-2) 
 .export-grid .wide { grid-column: 1 / -1; }
 .field textarea { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-raised); padding: 6px var(--space-2); font: inherit; resize: vertical; }
 @media (max-width: 640px) { .export-cards, .export-grid { grid-template-columns: 1fr; } }
+
+.sheet-table { width: 100%; border-collapse: collapse; }
+.sheet-table th, .sheet-table td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+.sheet-table th { color: var(--text-muted); font-weight: 500; }
+.sheet-table tr.on td { background: var(--accent-soft); font-weight: 600; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

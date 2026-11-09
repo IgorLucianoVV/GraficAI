@@ -135,21 +135,68 @@ export interface PaperProfile {
   grammage: number;
   /** Espessura de uma página (meia folha) em mm. */
   mmPerPage: number;
+  /** Preço do papel em R$/kg (o preço da folha sai da área × gramatura). */
+  pricePerKg: number;
+}
+
+/** Folha de impressão (formato de máquina), em mm. */
+export interface SheetFormat {
+  id: string;
+  name: string;
+  widthMm: number;
+  heightMm: number;
 }
 
 export interface OffsetCost {
-  /** Custo fixo de chapas + acerto por caderno, indexado pelo tamanho do caderno. */
-  setupPerSignature: Record<number, number>;
-  /** Preço da folha de impressão (inteira). */
-  sheetPrice: number;
-  /** Páginas do livro que cabem numa folha de impressão (frente e verso). */
-  pagesPerSheet: number;
+  /**
+   * Chapas + acerto por caderno, indexado pela fração da folha que o caderno
+   * ocupa (1 = folha inteira, 0.5 = meia, 0.25 = quarto). Independe do formato.
+   */
+  setupByFraction: Record<string, number>;
+  /** Formatos de folha que a gráfica imprime. */
+  sheets: SheetFormat[];
+  /** Folha escolhida ('auto' = a mais barata para este livro). */
+  sheetChoice: string;
+  /** Maior caderno que a dobradeira faz (páginas). */
+  maxFolding: number;
+  /** Menor caderno aceito (páginas). */
+  minSignature: number;
+  /** Pinça (borda de pega da máquina), em mm. */
+  gripperMm: number;
+  /** Margem livre nas outras bordas da folha, em mm. */
+  sheetMarginMm: number;
+  /** Acréscimo por página para refile e sangria, em mm (em cada dimensão). */
+  pageAllowanceMm: number;
   /** Custo de rodagem por 1.000 folhas impressas (frente e verso). */
   runPerThousandSheets: number;
   /** Perda de papel em acerto e refile (fração). */
   waste: number;
   bindingPerCopy: number;
   coverPerCopy: number;
+}
+
+/** Como as páginas do livro se distribuem na folha de impressão. */
+export interface Imposition {
+  sheet: SheetFormat;
+  /** Páginas que cabem fisicamente por lado. */
+  fit: number;
+  /** Páginas usadas por lado (potência de 2 para a dobra, limitada pela dobradeira). */
+  pagesPerSide: number;
+  /** Páginas por folha (frente e verso) = maior caderno. */
+  pagesPerSheet: number;
+  cols: number;
+  rows: number;
+  /** Área de página impressa sobre a área da folha (0–1). */
+  efficiency: number;
+  /** Tamanhos de caderno possíveis neste formato, do maior para o menor. */
+  signatureSizes: number[];
+}
+
+export interface SheetOption {
+  sheet: SheetFormat;
+  imposition: Imposition | null;
+  total: number | null;
+  totalPages: number | null;
 }
 
 export interface DigitalCost {
@@ -161,7 +208,7 @@ export interface PrinterProfile {
   id: string;
   name: string;
   process: 'offset' | 'digital';
-  /** Tamanhos de caderno aceitos, do maior para o menor. */
+  /** Digital: tamanhos aceitos. Offset: derivados da imposição (ver `impose`). */
   signatureSizes: number[];
   offset: OffsetCost;
   digital: DigitalCost;
@@ -239,7 +286,7 @@ export interface SignaturePlan {
   paddingPages: number;
 }
 
-export type IssueKind = 'pagina_curta' | 'linhas_viuvas' | 'fecho_caderno' | 'caderno_fracionado' | 'baixa_confianca' | 'abertura';
+export type IssueKind = 'pagina_curta' | 'linhas_viuvas' | 'fecho_caderno' | 'caderno_fracionado' | 'baixa_confianca' | 'abertura' | 'aproveitamento' | 'formato_nao_cabe';
 
 export interface Issue {
   kind: IssueKind;
@@ -270,6 +317,10 @@ export interface Diagnosis {
   plan: SignaturePlan;
   cost: CostBreakdown;
   spineMm: number;
+  /** Offset: folha usada e aproveitamento; null no digital. */
+  imposition: Imposition | null;
+  /** Offset: comparação entre as folhas da gráfica. */
+  sheetOptions: SheetOption[];
   issues: Issue[];
   /** Quanto falta ou sobra para o fechamento sem páginas extras. */
   evenWorking: { pagesToCut: number; lowerTotal: number; pagesToFill: number; upperTotal: number };

@@ -2,6 +2,7 @@ import type { Book, Diagnosis, Page, ProjectSettings } from './types.ts';
 import { KIND_LABELS } from './rules.ts';
 import { describePlan } from './signatures.ts';
 import { PRESET_LABELS } from './opening.ts';
+import { sheetLabel } from './impose.ts';
 
 /**
  * Documentos de exportação como dados puros: o front só desenha. Assim o
@@ -98,6 +99,12 @@ export function printerSpecDoc(book: Book, settings: ProjectSettings, diag: Diag
         ['Páginas', `${n0(diag.plan.totalPages)} (${n0(diag.layout.contentPages)} compostas + ${n0(padding)} de fechamento)`],
         ['Cadernos', `${describePlan(diag.plan)} = ${diag.plan.sizes.length} ${diag.plan.sizes.length === 1 ? 'caderno' : 'cadernos'}`],
         ['Papel', `${pr.paper.name}`],
+        ...(diag.imposition
+          ? ([
+              ['Folha de impressão', `${diag.imposition.sheet.name} ${sheetLabel(diag.imposition.sheet)}`],
+              ['Imposição', `${diag.imposition.pagesPerSide} páginas por lado (${diag.imposition.cols} × ${diag.imposition.rows}), caderno de ${diag.imposition.pagesPerSheet}, aproveitamento de ${Math.round(diag.imposition.efficiency * 100)}%`],
+            ] as [string, string][])
+          : []),
         ['Cores', p.interiorColors],
       ],
     },

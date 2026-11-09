@@ -103,3 +103,21 @@ export function layoutBook(book: Book, d: DesignSpec): Layout {
   const blankPages = pages.filter((p) => p.kind === 'branco').length;
   return { pages, elements, metrics: m, contentPages, blankPages };
 }
+
+const half = (x: number) => Math.round(x * 2) / 2;
+
+/** Troca o formato; com `scaleMargins`, as margens acompanham a proporção da página. */
+export function withTrim(d: DesignSpec, widthMm: number, heightMm: number, scaleMargins: boolean): DesignSpec {
+  if (!scaleMargins) return { ...d, trimWidthMm: widthMm, trimHeightMm: heightMm };
+  const sx = widthMm / d.trimWidthMm;
+  const sy = heightMm / d.trimHeightMm;
+  return {
+    ...d,
+    trimWidthMm: widthMm,
+    trimHeightMm: heightMm,
+    marginInnerMm: half(d.marginInnerMm * sx),
+    marginOuterMm: half(d.marginOuterMm * sx),
+    marginTopMm: half(d.marginTopMm * sy),
+    marginBottomMm: half(d.marginBottomMm * sy),
+  };
+}

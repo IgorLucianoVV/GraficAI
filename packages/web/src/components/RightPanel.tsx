@@ -1,5 +1,6 @@
 import type { Book, Diagnosis, Issue, ProjectSettings, Variant, DesignSpec } from '@graficai/core';
-import { PRINTERS, PAPERS, TRIMS, describePlan, explainPage, KIND_LABELS } from '@graficai/core';
+import { PRINTERS, PAPERS, TRIMS, describePlan, explainPage, KIND_LABELS, sheetLabel, withTrim } from '@graficai/core';
+import { useState } from 'react';
 import type { RightTab } from '../state.ts';
 import { brl, dec, num } from '../format.ts';
 import { OpeningSettings } from './OpeningSettings.tsx';
@@ -224,27 +225,11 @@ function Adjustments({ book, settings, onLive, onEndLive, onCommit, diag }: Prop
   const d = settings.design;
   const live = (patch: Partial<DesignSpec>, label: string) => onLive({ ...settings, design: { ...d, ...patch } }, label);
   const commit = (s: ProjectSettings, label: string) => onCommit(s, label);
-  const trim = TRIMS.find((t) => t.w === d.trimWidthMm && t.h === d.trimHeightMm);
 
   return (
     <>
       <p className="section-title">Projeto gráfico</p>
-      <div className="field">
-        <label htmlFor="trim">Formato</label>
-        <select
-          id="trim"
-          value={trim ? trim.label : 'custom'}
-          onChange={(e) => {
-            const t = TRIMS.find((x) => x.label === e.target.value);
-            if (t) commit({ ...settings, design: { ...d, trimWidthMm: t.w, trimHeightMm: t.h } }, `formato ${t.label}`);
-          }}
-        >
-          {TRIMS.map((t) => (
-            <option key={t.label}>{t.label}</option>
-          ))}
-          {!trim && <option value="custom">{d.trimWidthMm / 10} × {d.trimHeightMm / 10} cm</option>}
-        </select>
-      </div>
+      <TrimField settings={settings} onCommit={commit} />
       <Slider id="body" label="Corpo do texto" value={d.bodySizePt} min={9} max={14} step={0.25} unit="pt" onLive={(v) => live({ bodySizePt: v }, 'corpo do texto')} onEnd={onEndLive} />
       <Slider id="lead" label="Entrelinha" value={d.leadingPt} min={10} max={20} step={0.25} unit="pt" onLive={(v) => live({ leadingPt: v }, 'entrelinha')} onEnd={onEndLive} />
       {d.leadingPt / d.bodySizePt < 1.18 && <p className="small" style={{ color: 'var(--warning)', margin: 0 }}>Entrelinha apertada para o corpo escolhido (menos de 1,18×).</p>}
@@ -310,8 +295,12 @@ function Adjustments({ book, settings, onLive, onEndLive, onCommit, diag }: Prop
           </select>
         </div>
       </div>
+      {settings.printer.process === 'offset' && <SheetField settings={settings} diag={diag} onCommit={commit} />}
       <p className="small muted" style={{ margin: 0 }}>
-        Cadernos aceitos: {settings.printer.signatureSizes.join(', ')} páginas. Valores de custo são de exemplo — substitua pela tabela da sua gráfica.
+        {settings.printer.process === 'offset'
+          ? `Cadernos possíveis neste formato: ${(diag.imposition?.signatureSizes ?? settings.printer.signatureSizes).join(', ')} páginas.`
+          : `Cadernos aceitos: ${settings.printer.signatureSizes.join(', ')} páginas.`}{' '}
+        Valores de custo são de exemplo — substitua pela tabela da sua gráfica.
       </p>
     </>
   );
@@ -358,6 +347,129 @@ function PageDetail({ book, diag, page, onSelectPage }: Props & { page: number }
         ))}
       </div>
       {el && <p className="small muted">{KIND_LABELS[el.kind]}</p>}
+    </>
+  );
+}
+
+/** Formato do livro: prontos ou personalizado, com opção de escalar as margens. */
+function TrimField({ settings, onCommit }: { settings: ProjectSettings; onCommit: (s: ProjectSettings, label: string) => void }) {
+  const d = settings.design;
+  const preset = TRIMS.find((t) => t.w === d.trimWidthMm && t.h === d.trimHeightMm);
+  const [custom, setCustom] = useState(!preset);
+  const [scale, setScale] = useState(true);
+  const [w, setW] = useState(String(d.trimWidthMm));
+  const [h, setH] = useState(String(d.trimHeightMm));
+
+  const apply = (width: number, height: number, label: string) => {
+    if (!(width >= 50 && width <= 400 && height >= 50 && height <= 500)) return;
+    if (width === d.trimWidthMm && height === d.trimHeightMm) return;
+    onCommit({ ...settings, design: withTrim(d, width, height, scale) }, label);
+  };
+
+  return (
+    <>
+      <div className="field">
+        <label htmlFor="trim">Formato</label>
+        <select
+          id="trim"
+          value={custom ? 'custom' : preset ? preset.label : 'custom'}
+          onChange={(e) => {
+            if (e.target.value === 'custom') {
+              setCustom(true);
+              setW(String(d.trimWidthMm));
+              setH(String(d.trimHeightMm));
+              return;
+            }
+            const t = TRIMS.find((x) => x.label === e.target.value)!;
+            setCustom(false);
+            apply(t.w, t.h, `formato ${t.label}`);
+          }}
+        >
+          {TRIMS.map((t) => (
+            <option key={t.label}>{t.label}</option>
+          ))}
+          <option value="custom">Personalizado…</option>
+        </select>
+      </div>
+      {custom && (
+        <form
+          className="row"
+          style={{ alignItems: 'flex-end' }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            apply(Number(w), Number(h), `formato ${w} × ${h} mm`);
+          }}
+        >
+          <div className="field">
+            <label htmlFor="trim-w">Largura (mm)</label>
+            <input id="trim-w" type="number" min={50} max={400} value={w} onChange={(e) => setW(e.target.value)} onBlur={() => apply(Number(w), Number(h), `formato ${w} × ${h} mm`)} />
+          </div>
+          <div className="field">
+            <label htmlFor="trim-h">Altura (mm)</label>
+            <input id="trim-h" type="number" min={50} max={500} value={h} onChange={(e) => setH(e.target.value)} onBlur={() => apply(Number(w), Number(h), `formato ${w} × ${h} mm`)} />
+          </div>
+          <button type="submit" className="visually-hidden">Aplicar formato</button>
+        </form>
+      )}
+      <label className="check small">
+        <input type="checkbox" checked={scale} onChange={(e) => setScale(e.target.checked)} />
+        Margens acompanham o formato
+      </label>
+    </>
+  );
+}
+
+const pct = (x: number) => `${Math.round(x * 100)}%`;
+
+/** Folha de impressão: automática (mais barata) ou fixa, com comparação. */
+function SheetField({ settings, diag, onCommit }: { settings: ProjectSettings; diag: Diagnosis; onCommit: (s: ProjectSettings, label: string) => void }) {
+  const o = settings.printer.offset;
+  const imp = diag.imposition;
+  return (
+    <>
+      <div className="field">
+        <label htmlFor="sheet">Folha de impressão</label>
+        <select
+          id="sheet"
+          value={o.sheetChoice}
+          onChange={(e) => onCommit({ ...settings, printer: { ...settings.printer, offset: { ...o, sheetChoice: e.target.value } } }, 'folha de impressão')}
+        >
+          <option value="auto">Automática (mais barata)</option>
+          {o.sheets.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} — {sheetLabel(s)}
+            </option>
+          ))}
+        </select>
+      </div>
+      {imp && (
+        <p className="small num" style={{ margin: 0 }}>
+          {sheetLabel(imp.sheet)}: {imp.pagesPerSide} páginas por lado ({imp.cols} × {imp.rows}) → caderno de {imp.pagesPerSheet} · aproveitamento{' '}
+          <strong style={{ color: imp.efficiency < 0.6 ? 'var(--warning)' : undefined }}>{pct(imp.efficiency)}</strong>
+        </p>
+      )}
+      {diag.sheetOptions.length > 1 && (
+        <table className="sheet-table small num">
+          <thead>
+            <tr>
+              <th>Folha</th>
+              <th>Caderno</th>
+              <th>Aprov.</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {diag.sheetOptions.map((op) => (
+              <tr key={op.sheet.id} className={imp && op.sheet.id === imp.sheet.id ? 'on' : ''}>
+                <td>{sheetLabel(op.sheet)}</td>
+                <td>{op.imposition ? `${op.imposition.pagesPerSheet} pp` : 'não cabe'}</td>
+                <td>{op.imposition ? pct(op.imposition.efficiency) : '—'}</td>
+                <td>{op.total !== null ? brl(op.total) : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </>
   );
 }

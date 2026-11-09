@@ -13,6 +13,7 @@ import {
   classifyBlocks,
   estimateCost,
   PRINTERS,
+  impose,
   pageMetrics,
   DEFAULT_DESIGN,
   type Book,
@@ -114,8 +115,9 @@ describe('diagnóstico', () => {
   });
   it('offset: menos cadernos custa menos', () => {
     const p = PRINTERS[0];
-    const a = estimateCost(planSignatures(224, p.signatureSizes), p, 1000);
-    const b = estimateCost(planSignatures(192, p.signatureSizes), p, 1000);
+    const imp = impose(140, 210, p.offset.sheets[0], p.offset)!;
+    const a = estimateCost(planSignatures(224, imp.signatureSizes), p, 1000, imp);
+    const b = estimateCost(planSignatures(192, imp.signatureSizes), p, 1000, imp);
     expect(b.total).toBeLessThan(a.total);
   });
 });

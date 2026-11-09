@@ -1,4 +1,5 @@
-import type { Book, Diagnosis, Issue, Page, ProjectSettings, DesignSpec, TextStats } from './types.ts';
+import type { Book, Diagnosis, Imposition, Issue, Page, ProjectSettings, DesignSpec, SheetOption, TextStats } from './types.ts';
+import { impose, sheetLabel } from './impose.ts';
 import { countText } from './laudas.ts';
 import { layoutBook } from './layout.ts';
 import { describePlan, evenWorking, planSignatures } from './signatures.ts';
@@ -11,7 +12,40 @@ export function diagnose(book: Book, settings: ProjectSettings, designOverride?:
   // A contagem de texto não depende do projeto gráfico: o otimizador reaproveita.
   const stats = cachedStats ?? countText(book, settings.lauda);
   const layout = layoutBook(book, design);
-  const sizes = settings.printer.signatureSizes;
+  const printer = settings.printer;
+
+  // Offset: avalia cada folha da gráfica; a escolha define cadernos e custo.
+  let imposition: Imposition | null = null;
+  let sheetOptions: SheetOption[] = [];
+  const pre: Issue[] = [];
+  if (printer.process === 'offset') {
+    sheetOptions = printer.offset.sheets.map((sheet) => {
+      const imp = impose(design.trimWidthMm, design.trimHeightMm, sheet, printer.offset);
+      if (!imp) return { sheet, imposition: null, total: null, totalPages: null };
+      const p = planSignatures(layout.contentPages, imp.signatureSizes);
+      return { sheet, imposition: imp, total: estimateCost(p, printer, settings.run, imp).total, totalPages: p.totalPages };
+    });
+    const viable = sheetOptions.filter((o) => o.imposition);
+    const chosen = viable.find((o) => o.sheet.id === printer.offset.sheetChoice);
+    const cheapest = [...viable].sort((a, b) => a.total! - b.total! || b.imposition!.efficiency - a.imposition!.efficiency)[0];
+    imposition = (chosen ?? cheapest)?.imposition ?? null;
+    if (!viable.length) {
+      pre.push({
+        kind: 'formato_nao_cabe',
+        severity: 'erro',
+        message: `O formato ${design.trimWidthMm} × ${design.trimHeightMm} mm não cabe em nenhuma folha da gráfica (${printer.offset.sheets.map(sheetLabel).join(', ')}).`,
+        suggestion: 'Reduza o formato ou cadastre uma folha maior no perfil da gráfica. Os números abaixo usam os cadernos padrão.',
+      });
+    } else if (printer.offset.sheetChoice !== 'auto' && !chosen) {
+      const s = printer.offset.sheets.find((x) => x.id === printer.offset.sheetChoice);
+      pre.push({
+        kind: 'formato_nao_cabe',
+        severity: 'alerta',
+        message: `O formato não cabe na folha escolhida${s ? ` (${sheetLabel(s)})` : ''}; usando ${sheetLabel(imposition!.sheet)}.`,
+      });
+    }
+  }
+  const sizes = imposition ? imposition.signatureSizes : printer.signatureSizes;
   const plan = planSignatures(layout.contentPages, sizes);
 
   // Páginas de fechamento do caderno entram no fim do livro.
@@ -24,16 +58,18 @@ export function diagnose(book: Book, settings: ProjectSettings, designOverride?:
     for (let i = 0; i < size && cursor < pages.length; i++) pages[cursor++].signatureIndex = idx;
   });
 
-  const cost = estimateCost(plan, settings.printer, settings.run);
+  const cost = estimateCost(plan, printer, settings.run, imposition);
   const ew = evenWorking(layout.contentPages, sizes);
-  const issues = findIssues(book, { ...layout, pages }, plan.paddingPages, ew, sizes, settings.printer.process);
+  const issues = [...pre, ...findIssues(book, { ...layout, pages }, plan.paddingPages, ew, sizes, printer.process), ...impositionIssues(imposition, sheetOptions, design)];
 
   return {
     stats,
     layout: { ...layout, pages, blankPages: pages.filter((p) => p.kind === 'branco').length },
     plan,
     cost,
-    spineMm: spineWidth(plan.totalPages, settings.printer.paper.mmPerPage),
+    spineMm: spineWidth(plan.totalPages, printer.paper.mmPerPage),
+    imposition,
+    sheetOptions,
     issues,
     evenWorking: ew,
   };
@@ -135,6 +171,30 @@ function findIssues(
         suggestion: 'Revise na aba Estrutura.',
       });
     }
+  }
+  return issues;
+}
+
+const pct = (x: number) => `${Math.round(x * 100)}%`;
+
+/** Aproveitamento da folha: avisa quando o formato desperdiça papel. */
+function impositionIssues(imp: Imposition | null, options: SheetOption[], d: DesignSpec): Issue[] {
+  if (!imp) return [];
+  const issues: Issue[] = [];
+  const label = `${d.trimWidthMm} × ${d.trimHeightMm} mm em ${sheetLabel(imp.sheet)}`;
+  const better = options
+    .filter((o) => o.imposition && o.sheet.id !== imp.sheet.id && o.imposition.efficiency > imp.efficiency + 0.05)
+    .sort((a, b) => b.imposition!.efficiency - a.imposition!.efficiency)[0];
+  if (imp.efficiency < 0.72) {
+    const lost = imp.fit > imp.pagesPerSide ? ` Cabem ${imp.fit} páginas por lado, mas a dobra usa ${imp.pagesPerSide}.` : '';
+    issues.push({
+      kind: 'aproveitamento',
+      severity: imp.efficiency < 0.6 ? 'alerta' : 'info',
+      message: `Aproveitamento de papel de ${pct(imp.efficiency)} (${label}).${lost}`,
+      suggestion: better
+        ? `Em ${sheetLabel(better.sheet)} o aproveitamento seria ${pct(better.imposition!.efficiency)}. Ou ajuste o formato para caber mais páginas por folha.`
+        : 'Um formato um pouco menor pode caber mais páginas por folha e baixar o custo de papel.',
+    });
   }
   return issues;
 }
