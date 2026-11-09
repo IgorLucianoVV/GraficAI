@@ -2,7 +2,7 @@
 
 Diagnóstico editorial de livros: do manuscrito ao caderno fechado. Envie o original e veja as laudas, a estimativa de páginas, o plano de cadernos, a lombada e o custo de impressão — com cada página em branco explicada e propostas de projeto gráfico que reduzem cadernos.
 
-Esta é a **fase F1 (Diagnóstico)** do plano de implementação.
+Com contas, equipes e projetos salvos; pronto para subir na Vercel com Postgres no Neon.
 
 ## O que já funciona
 
@@ -21,49 +21,53 @@ Esta é a **fase F1 (Diagnóstico)** do plano de implementação.
 - **Exportar** (botão no topo ou Ctrl+K): *especificação para a gráfica* em PDF (formato, páginas, plano de cadernos, papel, lombada, capa aberta com orelhas e sangria, estimativa de referência, observações) e *brief para o designer* em PDF (mancha, tipografia, abertura de capítulo, estrutura com página inicial, cadernos, brancos e pontos de atenção). Os documentos são montados em `@graficai/core` (`printerSpecDoc`, `designerBriefDoc`) e desenhados no navegador com jsPDF.
 - **Interface**: painel ao vivo (páginas, cadernos, R$/exemplar, laudas, lombada com deltas), desfazer/refazer (Ctrl+Z / Ctrl+Shift+Z), paleta de comandos (Ctrl+K), modo foco (Ctrl+\\), tema claro/escuro, `prefers-reduced-motion`, navegação por teclado.
 
-> Os valores de custo dos perfis de gráfica são **de exemplo**. Substitua em `packages/core/src/defaults.ts` pela tabela da gráfica parceira.
+> Os perfis de gráfica de exemplo têm valores **ilustrativos**. Cadastre a tabela da sua gráfica em Configurações → Perfis de gráfica.
 
 ## Livro composto (Typst)
 
 Exportar → **Livro composto** gera o miolo diagramado de verdade com [Typst](https://typst.app) (via `@myriaddreamin/typst-ts-node-compiler`, sem instalar nada além do `npm install`):
 
 - formato, margens interna/externa, corpo e entrelinha do projeto; hifenização em português;
-- abertura de capítulo: numeral, ornamento, capitular rebaixada (medida palavra a palavra) ou elevada, versalete nas primeiras palavras ou na primeira linha;
+- abertura de capítulo: numeral, ornamento, capitular rebaixada (medida palavra a palavra) ou elevada, versalete; epígrafe de capítulo;
 - notas de rodapé na chamada, numeradas por capítulo; sumário com as páginas reais;
-- cabeço (título do livro no verso, do capítulo na frente), fólio, aberturas em página ímpar e brancos sem cabeço/fólio;
-- saída no formato final, com sangria ou com sangria e marcas de corte; opção de fechar o último caderno com páginas em branco.
+- cabeço, fólio, aberturas em página ímpar e brancos sem cabeço/fólio;
+- saída no formato final, com sangria ou com sangria e marcas de corte; opção de fechar o último caderno.
 
-`POST /api/typeset` com `{ book, settings, options: { trimMarks, padToSignatures }, format: 'pdf' | 'typ' | 'json' }`. O `.typ` é legível e editável: as funções de desenho ficam no prelúdio. Fonte padrão: EB Garamond (OFL, em `packages/api/fonts`).
+`POST /api/projetos/:id/compor` com `{ options: { trimMarks, padToSignatures }, format: 'pdf' | 'typ' | 'json' }` compõe o projeto salvo e devolve o PDF em streaming. Fonte padrão: EB Garamond (OFL, em `packages/server/fonts`).
+
+## Contas, equipes e projetos
+
+- **Conta** com e-mail e senha (scrypt, sessão em cookie httpOnly guardada no banco, 30 dias).
+- **Equipes**: cada conta tem uma equipe pessoal; crie outras e convide por link (7 dias, uso único). Papéis: **dono** (tudo), **editor** (cria e edita), **leitor** (vê e exporta).
+- **Projetos** da equipe com **salvamento automático** (1,2 s após a última alteração), controle de conflito entre janelas, **versões nomeadas**, versões automáticas a cada 10 min (as 30 mais recentes) e **restauração** (o estado atual vira versão antes).
+- **Perfis de gráfica** (folhas, dobra, acerto, papel em R$/kg, rodagem, encadernação, capa) e **modelos de projeto gráfico** da equipe, usados ao criar projetos e no editor.
 
 ## Rodando
 
-Requer Node 20+.
+Requer Node 20.9+.
 
 ```bash
 npm install
-npm run dev:api     # API em http://localhost:8787
-npm run dev:web     # interface em http://localhost:5173 (proxy para a API)
+npm run dev        # http://localhost:3000
 ```
 
-Produção (a API serve o front compilado):
+Sem `DATABASE_URL`, o banco é um Postgres embutido (PGlite) em `packages/app/.data`, criado sozinho. Para usar um Postgres de verdade ou a IA, copie `packages/app/.env.example` para `packages/app/.env.local`.
 
-```bash
-npm run build
-npm start           # http://localhost:8787
-```
+Produção local: `npm run build && npm start`.
 
-IA opcional:
+## Deploy grátis (Vercel + Neon)
 
-```bash
-cp .env.example .env   # defina ANTHROPIC_API_KEY (e, se quiser, ANTHROPIC_MODEL)
-```
+1. Crie um banco no [Neon](https://neon.com) (plano Free) e copie a *connection string* (com `sslmode=require`).
+2. Na [Vercel](https://vercel.com), importe o repositório do GitHub com **Root Directory = `packages/app`** (framework Next.js; mantenha ativado “Include files outside the root directory”).
+3. Em *Environment Variables*: `DATABASE_URL` (Neon) e, se quiser, `ANTHROPIC_API_KEY`.
+4. Deploy. As tabelas são criadas na primeira requisição (migrações embutidas e idempotentes).
 
-O livro de exemplo abre sem servidor de IA; um manuscrito de teste está em `examples/manuscrito-exemplo.docx`.
+Limites do plano gratuito que importam aqui: Vercel Hobby é para uso não comercial; requisições de até 4,5 MB (manuscritos grandes com imagens podem passar disso); o Neon suspende o banco após 5 min parado (a primeira requisição depois demora um pouco mais).
 
 ## Testes
 
 ```bash
-npm test          # motores determinísticos (cadernos, laudas, paginação, custo, propostas, classificação)
+npm test          # motores, ingestão, composição Typst, contas/equipes/projetos (PGlite em memória)
 npm run typecheck
 ```
 
@@ -71,17 +75,19 @@ npm run typecheck
 
 ```
 packages/
-  core/   Motores determinísticos em TypeScript puro (sem LLM): laudas, castoff, montagem,
-          cadernos, custo, problemas, explicações, propostas e classificação por regras.
-          Roda no navegador (diagnóstico ao vivo) e no servidor.
-  api/    Express: upload, conversão DOCX → blocos, classificação, refinamento opcional com Claude.
-  web/    React + Vite: início, revisão da estrutura e área de diagnóstico.
+  core/    Motores determinísticos em TypeScript puro: laudas, castoff, imposição, cadernos,
+           custo, abertura de capítulo, propostas, classificação por regras, gerador Typst.
+  server/  Banco (Drizzle + Postgres/PGlite), autenticação, equipes, projetos e versões,
+           perfis/modelos, ingestão de DOCX/MD/TXT, IA opcional, composição Typst.
+  app/     Next.js (App Router): páginas, rotas /api e o editor (diagnóstico ao vivo no navegador).
 ```
 
 Princípio: **o LLM interpreta, o código calcula**. O modelo só rotula a estrutura; todo número vem de `@graficai/core`.
 
+Migrações: edite `packages/server/src/db/schema.ts` e rode `npm run db:generate -w @graficai/server`.
+
 ## Próximas fases
 
-- F2 — composição real com Typst por capítulo e PDF para gráfica.
+- F2.4 — painel estimado × real (calibrar o castoff com a composição).
 - F3 — otimizador com composição real e variação por parágrafo.
 - F4 — editor e agente conversacional.
