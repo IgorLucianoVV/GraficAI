@@ -57,7 +57,9 @@ export async function renderPdf(doc: ExportDoc): Promise<Blob> {
   const base = { margin: { left: M, right: M, top: M, bottom: M + 8 }, styles: { font: 'helvetica', fontSize: 8.8, textColor: INK, cellPadding: { top: 1.4, bottom: 1.4, left: 2, right: 2 }, lineColor: RULE } };
 
   for (const s of doc.sections) {
-    ensure(18);
+    // Mantém o título junto do conteúdo: tabelas curtas e parágrafos não ficam órfãos.
+    const shortTable = s.table && s.table.rows.length <= 12 ? 10 + s.table.rows.length * 7 : 0;
+    ensure(18 + shortTable + (s.paragraphs?.length ?? 0) * 6 + (s.kv && s.kv.length <= 8 ? s.kv.length * 6.5 : 0));
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(10.5);
     pdf.setTextColor(...ACCENT);
