@@ -1,0 +1,30 @@
+{
+  "name": "graficai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "GraficAI — diagnóstico editorial: laudas, castoff, cadernos e custo de impressão",
+  "workspaces": [
+    "packages/core",
+    "packages/api",
+    "packages/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @graficai/api & npm run dev --workspace @graficai/web",
+    "dev:api": "npm run dev --workspace @graficai/api",
+    "dev:web": "npm run dev --workspace @graficai/web",
+    "build": "npm run build --workspace @graficai/web",
+    "start": "npm run start --workspace @graficai/api",
+    "test": "vitest run",
+    "typecheck": "tsc -p packages/core && tsc -p packages/api && tsc -p packages/web"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node@^4.68.2"
+  }
+}
