@@ -10,6 +10,9 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   name: text('name').notNull(),
   passwordHash: text('password_hash').notNull(),
+  /** Conta de visitante (sem e-mail real); vira conta normal ao se cadastrar. */
+  guest: boolean('guest').notNull().default(false),
+  lastSeenAt: ts('last_seen_at'),
   createdAt: ts('created_at').notNull().defaultNow(),
 });
 

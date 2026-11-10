@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { api } from '@/src/api';
 
 /** Entrar ou criar conta. Depois redireciona para `next` (só caminhos internos). */
-export function AuthForm({ mode, next }: { mode: 'entrar' | 'cadastro'; next?: string }) {
+export function AuthForm({ mode, next, guest = false }: { mode: 'entrar' | 'cadastro'; next?: string; guest?: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : '/projetos';
@@ -18,6 +18,11 @@ export function AuthForm({ mode, next }: { mode: 'entrar' | 'cadastro'; next?: s
           GraficAI
         </Link>
         <h1>{signup ? 'Criar conta' : 'Entrar'}</h1>
+        {guest && (
+          <p className="small muted" style={{ margin: 0 }}>
+            Você está como visitante. {signup ? 'Ao criar a conta, seus projetos continuam com você.' : 'Ao entrar, seus projetos de visitante vão para a sua conta.'}
+          </p>
+        )}
         <form
           onSubmit={async (e) => {
             e.preventDefault();
@@ -59,6 +64,34 @@ export function AuthForm({ mode, next }: { mode: 'entrar' | 'cadastro'; next?: s
             {busy ? 'Aguarde…' : signup ? 'Criar conta' : 'Entrar'}
           </button>
         </form>
+        {!guest && (
+          <>
+            <div className="or" aria-hidden>
+              <span>ou</span>
+            </div>
+            <button
+              type="button"
+              className="btn"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  await api('/api/auth/visitante', { body: {} });
+                  window.location.assign(safeNext);
+                } catch (err) {
+                  setError((err as Error).message);
+                  setBusy(false);
+                }
+              }}
+            >
+              Entrar como visitante
+            </button>
+            <p className="small muted" style={{ margin: '-6px 0 0' }}>
+              Sem cadastro. Seus projetos ficam salvos neste navegador; crie a conta quando quiser e eles vão junto.
+            </p>
+          </>
+        )}
         <p className="small muted" style={{ margin: 0 }}>
           {signup ? (
             <>

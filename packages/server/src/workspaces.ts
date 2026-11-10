@@ -2,7 +2,7 @@ import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { DB } from './db/client.ts';
 import { invites, memberships, users, workspaces, type Role } from './db/schema.ts';
 import { HttpError, badRequest, forbidden, notFound } from './errors.ts';
-import { newToken, sha256, type SessionUser } from './auth.ts';
+import { newToken, requireAccount, sha256, type SessionUser } from './auth.ts';
 
 export const ROLE_RANK: Record<Role, number> = { leitor: 0, editor: 1, dono: 2 };
 export const ROLE_LABEL: Record<Role, string> = { dono: 'Dono', editor: 'Editor', leitor: 'Leitor' };
@@ -33,6 +33,7 @@ export async function listWorkspaces(db: DB, user: SessionUser) {
 }
 
 export async function createWorkspace(db: DB, user: SessionUser, name: string) {
+  requireAccount(user, 'criar equipes');
   const n = name.trim();
   if (!n || n.length > 80) throw badRequest('Dê um nome de até 80 caracteres para a equipe.');
   return db.transaction(async (tx) => {
@@ -71,6 +72,7 @@ export async function workspaceDetail(db: DB, user: SessionUser, id: string) {
 
 /** Convite por link (sem e-mail): o token só aparece uma vez, na criação. */
 export async function createInvite(db: DB, user: SessionUser, workspaceId: string, role: Role, days = 7) {
+  requireAccount(user, 'convidar pessoas');
   await requireRole(db, user, workspaceId, 'dono');
   if (!isRole(role)) throw badRequest('Papel inválido.');
   const ws = await db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId) });
@@ -99,6 +101,7 @@ export async function inviteInfo(db: DB, token: string) {
 }
 
 export async function acceptInvite(db: DB, user: SessionUser, token: string) {
+  requireAccount(user, 'entrar numa equipe');
   const inv = await db.query.invites.findFirst({ where: eq(invites.tokenHash, sha256(token)) });
   if (!inv || inv.acceptedAt || inv.expiresAt < new Date()) throw notFound('Convite inválido ou expirado.');
   const existing = await db.query.memberships.findFirst({ where: and(eq(memberships.workspaceId, inv.workspaceId), eq(memberships.userId, user.id)) });

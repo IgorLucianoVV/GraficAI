@@ -11,6 +11,7 @@ export default async function Page() {
   return (
     <TeamView
       me={user.id}
+      guest={!!user.guest}
       workspace={{ id: d.workspace.id, name: d.workspace.name, personal: d.workspace.personal }}
       role={d.role}
       members={d.members.map((m) => ({ ...m, since: m.since.toISOString() }))}

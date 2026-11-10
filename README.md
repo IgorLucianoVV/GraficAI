@@ -38,6 +38,7 @@ Exportar → **Livro composto** gera o miolo diagramado de verdade com [Typst](h
 ## Contas, equipes e projetos
 
 - **Conta** com e-mail e senha (scrypt, sessão em cookie httpOnly guardada no banco, 30 dias).
+- **Visitante**: “Entrar como visitante” / “Experimentar sem conta” cria uma conta anônima com tudo funcionando (projetos, histórico, exportação), exceto equipes e convites. Ao criar a conta, os projetos continuam; ao entrar numa conta existente, os projetos do visitante vão para ela. Visitantes parados há 30 dias são apagados pelo cron diário (`/api/cron/limpar-visitantes`, exige `CRON_SECRET`).
 - **Equipes**: cada conta tem uma equipe pessoal; crie outras e convide por link (7 dias, uso único). Papéis: **dono** (tudo), **editor** (cria e edita), **leitor** (vê e exporta).
 - **Projetos** da equipe com **salvamento automático** (1,2 s após a última alteração), controle de conflito entre janelas, **versões nomeadas**, versões automáticas a cada 10 min (as 30 mais recentes) e **restauração** (o estado atual vira versão antes).
 - **Perfis de gráfica** (folhas, dobra, acerto, papel em R$/kg, rodagem, encadernação, capa) e **modelos de projeto gráfico** da equipe, usados ao criar projetos e no editor.
@@ -59,7 +60,7 @@ Produção local: `npm run build && npm start`.
 
 1. Crie um banco no [Neon](https://neon.com) (plano Free) e copie a *connection string* (com `sslmode=require`).
 2. Na [Vercel](https://vercel.com), importe o repositório do GitHub com **Root Directory = `packages/app`** (framework Next.js; mantenha ativado “Include files outside the root directory”).
-3. Em *Environment Variables*: `DATABASE_URL` (Neon) e, se quiser, `ANTHROPIC_API_KEY`.
+3. Em *Environment Variables*: `DATABASE_URL` (Neon), `CRON_SECRET` (qualquer texto aleatório, para a limpeza de visitantes) e, se quiser, `ANTHROPIC_API_KEY`.
 4. Deploy. As tabelas são criadas na primeira requisição (migrações embutidas e idempotentes).
 
 Limites do plano gratuito que importam aqui: Vercel Hobby é para uso não comercial; requisições de até 4,5 MB (manuscritos grandes com imagens podem passar disso); o Neon suspende o banco após 5 min parado (a primeira requisição depois demora um pouco mais).

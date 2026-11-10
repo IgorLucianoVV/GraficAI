@@ -13,7 +13,7 @@ export function SettingsView({
   printers,
   templates,
 }: {
-  user: { name: string; email: string };
+  user: { name: string; email: string; guest?: boolean };
   workspace: WorkspaceItem;
   printers: LibraryItem<PrinterProfile>[];
   templates: LibraryItem<DesignSpec>[];
@@ -380,8 +380,18 @@ function Templates({ templates, canEdit }: { templates: LibraryItem<DesignSpec>[
 // ---------------------------------------------------------------------------
 // Conta
 
-function Account({ user }: { user: { name: string; email: string } }) {
+function Account({ user }: { user: { name: string; email: string; guest?: boolean } }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  if (user.guest)
+    return (
+      <section className="panel">
+        <div className="panel-body">
+          <p style={{ margin: 0 }}>
+            Você está como visitante. <a href="/cadastro">Crie sua conta</a> para definir e-mail e senha — seus projetos, perfis e modelos continuam com você.
+          </p>
+        </div>
+      </section>
+    );
   return (
     <section className="panel">
       <div className="panel-head">

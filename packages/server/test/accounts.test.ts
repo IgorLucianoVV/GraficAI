@@ -25,6 +25,10 @@ import {
   signUp,
   userFromToken,
   verifyPassword,
+  signInAsGuest,
+  upgradeGuest,
+  mergeGuestInto,
+  purgeGuests,
   type DB,
   type ProjectData,
 } from '../src/index.ts';
@@ -141,5 +145,41 @@ describe('contas, equipes e projetos', () => {
     expect(lib.printers[0].data.id).toBe(id);
     expect(lib.templates[0].name).toBe('Romance 14×21');
     expect(await status(createPrinter(db, user, ws.id, 'X', { nada: true } as never))).toBe(400);
+  }, 30000);
+
+  it('visitante: usa projetos, não cria equipe, vira conta sem perder nada', async () => {
+    const { user: g, token } = await signInAsGuest(db);
+    expect(g.guest).toBe(true);
+    expect((await userFromToken(db, token))?.guest).toBe(true);
+    const [ws] = await listWorkspaces(db, g);
+    const { id } = await createProject(db, g, ws.id, { data: data() });
+    expect(await status(createWorkspace(db, g, 'Equipe'))).toBe(403);
+    // E-mail sintético não permite entrar por senha.
+    expect(await status(signIn(db, { email: g.email, password: '!visitante' }))).toBe(401);
+    const up = await upgradeGuest(db, g, { email: 'vi@x.com', password: 'senha-forte', name: 'Vitória Alves' });
+    expect(up.guest).toBe(false);
+    const me = (await userFromToken(db, token))!;
+    expect(me).toMatchObject({ email: 'vi@x.com', guest: false });
+    expect((await getProject(db, me, id)).title).toBe('Rios de Papel');
+    expect((await listWorkspaces(db, me))[0].name).toBe('Projetos de Vitória');
+    expect(await status(upgradeGuest(db, me, { email: 'z@x.com', password: 'senha-forte', name: 'Z' }))).toBe(400);
+  }, 30000);
+
+  it('visitante que entra numa conta existente leva os projetos', async () => {
+    const { user: acc } = await signUp(db, { email: 'dona@x.com', password: 'senha-forte', name: 'Dona' });
+    const { user: g } = await signInAsGuest(db);
+    const [gws] = await listWorkspaces(db, g);
+    const { id } = await createProject(db, g, gws.id, { data: data() });
+    expect(await mergeGuestInto(db, g.id, acc.id)).toBe(1);
+    const [aws] = await listWorkspaces(db, acc);
+    expect((await listProjects(db, acc, aws.id)).map((p) => p.id)).toContain(id);
+    expect(await userFromToken(db, 'qualquer')).toBeNull();
+  }, 30000);
+
+  it('limpeza apaga só visitantes parados', async () => {
+    const { user: g } = await signInAsGuest(db);
+    expect(await purgeGuests(db, 30)).toBe(0);
+    expect(await purgeGuests(db, -1)).toBeGreaterThanOrEqual(1);
+    expect(await status(listWorkspaces(db, g).then((l) => (l.length ? l : Promise.reject(new HttpError(404, 'x')))))).toBe(404);
   }, 30000);
 });

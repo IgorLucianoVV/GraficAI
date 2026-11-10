@@ -37,12 +37,12 @@ export default async function Page({ params }: { params: Promise<{ token: string
             <p className="muted">
               Você foi convidado como <strong>{ROLE_LABEL[info.role]}</strong>.
             </p>
-            {user ? (
+            {user && !user.guest ? (
               <AcceptInvite token={token} userName={user.name} />
             ) : (
               <div className="row">
                 <Link className="btn btn-primary" href={`/cadastro?proximo=${encodeURIComponent(here)}`}>
-                  Criar conta
+                  {user?.guest ? 'Criar conta (projetos de visitante vão junto)' : 'Criar conta'}
                 </Link>
                 <Link className="btn" href={`/entrar?proximo=${encodeURIComponent(here)}`}>
                   Já tenho conta

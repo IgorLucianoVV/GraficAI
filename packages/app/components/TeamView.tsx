@@ -24,7 +24,7 @@ interface Invite {
   expiresAt: string;
 }
 
-export function TeamView({ me, workspace, role, members, invites }: { me: string; workspace: { id: string; name: string; personal: boolean }; role: Role; members: Member[]; invites: Invite[] }) {
+export function TeamView({ me, guest = false, workspace, role, members, invites }: { me: string; guest?: boolean; workspace: { id: string; name: string; personal: boolean }; role: Role; members: Member[]; invites: Invite[] }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
@@ -170,6 +170,15 @@ export function TeamView({ me, workspace, role, members, invites }: { me: string
         </section>
       )}
 
+      {guest ? (
+        <section className="panel">
+          <div className="panel-body">
+            <p style={{ margin: 0 }}>
+              Para criar equipes e convidar pessoas, <a href="/cadastro">crie sua conta</a>. Seus projetos de visitante continuam com você.
+            </p>
+          </div>
+        </section>
+      ) : (
       <section className="panel">
         <div className="panel-head">
           <h2>Nova equipe</h2>
@@ -197,6 +206,7 @@ export function TeamView({ me, workspace, role, members, invites }: { me: string
           </div>
         </form>
       </section>
+      )}
 
       {owner && !workspace.personal && (
         <section className="panel">

@@ -33,5 +33,12 @@ export const MIGRATIONS: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"projects_ws_idx\" ON \"projects\" USING btree (\"workspace_id\",\"updated_at\");",
       "CREATE INDEX \"sessions_user_idx\" ON \"sessions\" USING btree (\"user_id\");"
     ]
+  },
+  {
+    "id": "0001_large_arachne",
+    "statements": [
+      "ALTER TABLE \"users\" ADD COLUMN \"guest\" boolean DEFAULT false NOT NULL;",
+      "ALTER TABLE \"users\" ADD COLUMN \"last_seen_at\" timestamp with time zone;"
+    ]
   }
 ];

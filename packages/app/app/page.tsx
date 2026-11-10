@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { currentUser } from '@/lib/server';
+import { GuestButton } from '@/components/GuestButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,9 +30,12 @@ export default async function Landing() {
             Envie o original e veja as laudas, o plano de cadernos, a lombada e o custo de impressão. Ajuste o projeto gráfico com tudo recalculado ao vivo e
             exporte o livro composto em PDF.
           </p>
-          <Link className="btn btn-primary" href="/cadastro" style={{ minHeight: 44, padding: '0 22px', fontSize: 15 }}>
-            Começar grátis
-          </Link>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link className="btn btn-primary" href="/cadastro" style={{ minHeight: 44, padding: '0 22px', fontSize: 15 }}>
+              Criar conta grátis
+            </Link>
+            <GuestButton style={{ minHeight: 44, padding: '0 22px', fontSize: 15 }} />
+          </div>
           <div className="landing-points">
             <div>
               <strong>Cadernos sem desperdício</strong>

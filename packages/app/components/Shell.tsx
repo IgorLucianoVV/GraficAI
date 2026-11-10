@@ -18,7 +18,7 @@ export function selectWorkspace(id: string) {
 }
 
 /** Casca da área logada: navegação, troca de equipe e conta. */
-export function Shell({ user, workspaces, current, children }: { user: { name: string; email: string }; workspaces: WorkspaceItem[]; current: string; children: React.ReactNode }) {
+export function Shell({ user, workspaces, current, children }: { user: { name: string; email: string; guest?: boolean }; workspaces: WorkspaceItem[]; current: string; children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -78,12 +78,19 @@ export function Shell({ user, workspaces, current, children }: { user: { name: s
           >
             {theme === 'dark' ? '☀' : '☾'}
           </button>
-          <span className="small muted" title={user.email}>
-            {user.name}
-          </span>
+          {user.guest ? (
+            <Link className="btn btn-sm btn-primary" href="/cadastro">
+              Criar conta
+            </Link>
+          ) : (
+            <span className="small muted" title={user.email}>
+              {user.name}
+            </span>
+          )}
           <button
             className="btn btn-sm"
             onClick={async () => {
+              if (user.guest && !window.confirm('Ao sair, você perde o acesso aos projetos de visitante. Sair mesmo assim?')) return;
               await api('/api/auth/sair', { body: {} }).catch(() => {});
               window.location.assign('/entrar');
             }}
@@ -92,6 +99,14 @@ export function Shell({ user, workspaces, current, children }: { user: { name: s
           </button>
         </div>
       </header>
+      {user.guest && (
+        <div className="banner" role="status">
+          <span>
+            Você está como <strong>visitante</strong>. Seus projetos ficam salvos enquanto esta sessão existir (30 dias sem uso apagam). <Link href="/cadastro">Crie a conta</Link>{' '}
+            para não perder nada, trabalhar em equipe e entrar de outro computador.
+          </span>
+        </div>
+      )}
       <main className="shell-main">{children}</main>
     </div>
   );
